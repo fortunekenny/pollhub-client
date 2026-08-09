@@ -1,0 +1,27 @@
+{
+  "name": "pollhub-client",
+  "version": "0.1.0",
+  "private": true,
+  "description": "PollHub web client — creator dashboard and respondent pages. React + Vite + Tailwind, JavaScript ES modules.",
+  "type": "module",
+  "engines": {
+    "node": ">=20.11"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "firebase": "^10.14.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.28.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.0.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "tailwindcss": "^4.0.0",
+    "vite": "^6.0.5"
+  }
+}
