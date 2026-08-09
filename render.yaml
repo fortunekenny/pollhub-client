@@ -1,0 +1,44 @@
+# Render Blueprint — https://render.com/docs/blueprint-spec
+#
+# Deploys the client as a static site. The API is a separate service and is
+# not managed here; this file only describes the frontend.
+
+services:
+  - name: pollhub-client
+    type: web
+    runtime: static
+    plan: free
+
+    # `npm ci` would be preferable, but this repo has no package-lock.json
+    # and ci refuses to run without one. Commit a lockfile and switch.
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+
+    envVars:
+      # Vite inlines these at BUILD time, not run time. Changing one in the
+      # dashboard does nothing to the bundle already served — a redeploy is
+      # what applies it.
+      #
+      # These must be absolute: in production the client is on its own origin
+      # and the dev proxy in vite.config.js does not exist, so the relative
+      # '/api/v1' default would resolve against this static host.
+      - key: VITE_API_BASE
+        value: https://pollhub-api.onrender.com/api/v1
+      - key: VITE_WS_URL
+        value: wss://pollhub-api.onrender.com/ws
+
+    routes:
+      # SPA fallback. Without it, every deep link — /p/abc123, /dashboard,
+      # /polls/:id — returns 404 on refresh or when opened cold from a shared
+      # link, because no such file exists in dist/. The respondent page is
+      # reached almost entirely by shared link, so this is not a minor edge.
+      - type: rewrite
+        source: /*
+        destination: /index.html
+
+    headers:
+      # A long-cached service worker is sticky: a broken push registration
+      # would survive redeploys until the cached copy expired.
+      - path: /firebase-messaging-sw.js
+        name: Cache-Control
+        value: no-cache

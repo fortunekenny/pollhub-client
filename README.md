@@ -39,6 +39,40 @@ web push.
 | `npm run build` | Production build to `dist/` |
 | `npm run preview` | Serve the built output |
 
+## Deploying
+
+`render.yaml` describes the whole thing — point a Render Blueprint at this repo,
+or create a **Static Site** manually with:
+
+| Setting | Value |
+|---|---|
+| Build command | `npm install && npm run build` |
+| Publish directory | `dist` |
+| Rewrite rule | `/*` → `/index.html` (**Rewrite**, not Redirect) |
+
+Three things that only bite in production:
+
+**1. Both URL variables must be set, and set before the build.** Vite inlines
+`import.meta.env` at build time, so a value edited afterwards does not reach the
+served bundle until a redeploy. Left blank, `api.js` falls back to the relative
+`/api/v1` and `useLiveTallies.js` derives `wss://<this host>/ws` — both of which
+point at the static host, which serves neither.
+
+**2. The rewrite is not optional.** `/p/:slug` is reached almost entirely by
+shared link, and without the fallback a cold open returns 404 — no file named
+`/p/abc123` exists in `dist/`.
+
+**3. Split origins break cookie dedup.** In dev the Vite proxy keeps one origin.
+In production the client and API are different sites, and the API sets its
+cookies `SameSite=Lax`, which browsers do not send cross-site. Auth survives
+(the token is in `localStorage` and sent as a Bearer header), but the signed
+device-id cookie never comes back, so `dedupMode: "cookie_device"` — the default
+for every poll — stops recognising repeat voters. The fix is `SameSite=None;
+Secure` on the API side; see the API's `responses.controller.js`.
+
+Web push is optional: leave the `VITE_FIREBASE_*` variables unset and the
+notifications card reports "not configured" instead of failing.
+
 ## Layout
 
 ```
