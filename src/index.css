@@ -1,0 +1,154 @@
+@import 'tailwindcss';
+
+/*
+ * Design tokens.
+ *
+ * Chart colors are the validated palette from the data-viz reference — the
+ * dark column is the same hues re-stepped for the dark surface, not an
+ * automatic flip. Both sets were run through the validator: all checks pass
+ * adjacent-pairs in both modes. Light mode carries a contrast WARN on aqua,
+ * yellow and magenta, so every chart that uses categorical color ships
+ * direct labels AND a table view — that is the required relief, not a nicety.
+ */
+@theme {
+  --color-surface: #fcfcfb;
+  --color-plane: #f9f9f7;
+  --color-ink: #0b0b0b;
+  --color-ink-2: #52514e;
+  --color-muted: #898781;
+  --color-line: #e1e0d9;
+  --color-axis: #c3c2b7;
+
+  --color-brand: #2a78d6;
+  --color-brand-strong: #1c5cab;
+
+  --color-good: #0ca30c;
+  --color-warning: #fab219;
+  --color-critical: #d03b3b;
+
+  --color-s1: #2a78d6;
+  --color-s2: #eb6834;
+  --color-s3: #1baf7a;
+  --color-s4: #eda100;
+  --color-s5: #e87ba4;
+}
+
+@layer base {
+  :root {
+    color-scheme: light;
+    --surface: #fcfcfb;
+    --plane: #f9f9f7;
+    --ink: #0b0b0b;
+    --ink-2: #52514e;
+    --muted: #898781;
+    --line: #e1e0d9;
+    --axis: #c3c2b7;
+    --brand: #2a78d6;
+    --brand-ink: #1c5cab;
+    --ring: rgba(11, 11, 11, 0.1);
+    --good: #006300;
+    --critical: #d03b3b;
+
+    --s1: #2a78d6;
+    --s2: #eb6834;
+    --s3: #1baf7a;
+    --s4: #eda100;
+    --s5: #e87ba4;
+  }
+
+  /* Dark values live under both scopes: the media query follows the OS, the
+     data-theme scope follows the in-app toggle, and the toggle wins either way. */
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme='light'])) {
+      color-scheme: dark;
+      --surface: #1a1a19;
+      --plane: #0d0d0d;
+      --ink: #ffffff;
+      --ink-2: #c3c2b7;
+      --muted: #898781;
+      --line: #2c2c2a;
+      --axis: #383835;
+      --brand: #3987e5;
+      --brand-ink: #86b6ef;
+      --ring: rgba(255, 255, 255, 0.1);
+      --good: #0ca30c;
+      --critical: #d03b3b;
+
+      --s1: #3987e5;
+      --s2: #d95926;
+      --s3: #199e70;
+      --s4: #c98500;
+      --s5: #d55181;
+    }
+  }
+
+  :root[data-theme='dark'] {
+    color-scheme: dark;
+    --surface: #1a1a19;
+    --plane: #0d0d0d;
+    --ink: #ffffff;
+    --ink-2: #c3c2b7;
+    --muted: #898781;
+    --line: #2c2c2a;
+    --axis: #383835;
+    --brand: #3987e5;
+    --brand-ink: #86b6ef;
+    --ring: rgba(255, 255, 255, 0.1);
+    --good: #0ca30c;
+    --critical: #d03b3b;
+
+    --s1: #3987e5;
+    --s2: #d95926;
+    --s3: #199e70;
+    --s4: #c98500;
+    --s5: #d55181;
+  }
+
+  html {
+    background: var(--plane);
+  }
+
+  body {
+    background: var(--plane);
+    color: var(--ink);
+    font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+  }
+
+  /* Respect the OS setting rather than animating regardless. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--ring);
+    border-radius: 0.75rem;
+  }
+
+  .skip-link {
+    position: absolute;
+    left: -9999px;
+  }
+  .skip-link:focus {
+    left: 1rem;
+    top: 1rem;
+    z-index: 50;
+    padding: 0.5rem 0.75rem;
+    background: var(--surface);
+    border: 1px solid var(--ring);
+    border-radius: 0.5rem;
+  }
+}
