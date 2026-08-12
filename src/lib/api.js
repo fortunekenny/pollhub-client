@@ -150,6 +150,31 @@ export const uploadsApi = {
   sign: (kind) => api.post('/uploads/sign', { kind }),
 };
 
+// `/health` is the one endpoint outside the versioned prefix, so it is built
+// from the origin instead of BASE.
+const HEALTH_URL = new URL('/health', new URL(BASE, window.location.origin)).href;
+
+let featuresPromise = null;
+
+/**
+ * Which optional integrations this deployment of the API actually has wired up.
+ *
+ * Fetched once per page load and shared by every caller: an uploader renders
+ * once per poll option, and a request per option to learn the same flag would
+ * be absurd.
+ *
+ * A failed probe resolves to {} rather than rejecting, and callers read a
+ * missing flag as "available" — letting the real endpoint report the problem
+ * beats hiding a working feature because one request lost the network.
+ */
+export function apiFeatures() {
+  featuresPromise ??= fetch(HEALTH_URL)
+    .then((res) => (res.ok ? res.json() : null))
+    .then((data) => data?.features ?? {})
+    .catch(() => ({}));
+  return featuresPromise;
+}
+
 export const notificationsApi = {
   registerToken: (body) => api.post('/notifications/tokens', body),
   revokeToken: (token) => api.del('/notifications/tokens', { token }),
