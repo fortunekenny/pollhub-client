@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { uploadsApi } from '../lib/api.js';
+import { apiFeatures, uploadsApi } from '../lib/api.js';
+import { useAsync } from '../lib/hooks.js';
 import { Button, Spinner } from './ui.jsx';
 
 /**
@@ -16,6 +17,12 @@ export function ImageUploader({ kind = 'option', value, onChange, label = 'Add i
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [preview, setPreview] = useState(null);
+
+  // Cloudinary is optional, and the API refuses to mint a signature without
+  // it. Asking up front is what keeps that from surfacing as a rejection after
+  // the user has already picked a file.
+  const { data: features, loading: loadingFeatures } = useAsync(apiFeatures, []);
+  const uploadsDisabled = features?.uploads === false;
 
   async function upload(file) {
     if (!file) return;
@@ -41,9 +48,18 @@ export function ImageUploader({ kind = 'option', value, onChange, label = 'Add i
       form.append('upload_preset', sig.uploadPreset);
 
       const res = await fetch(sig.uploadUrl, { method: 'POST', body: form });
-      if (!res.ok) throw new Error('Cloudinary rejected the upload');
+      const data = await res.json().catch(() => null);
 
-      const data = await res.json();
+      // Cloudinary states the actual reason in error.message — a preset that
+      // does not exist, a signature that does not cover every signed param, a
+      // file the preset's limits reject. Collapsing all of those into one
+      // generic string leaves nothing to act on.
+      if (!res.ok) {
+        throw new Error(
+          data?.error?.message ?? `Cloudinary rejected the upload (${res.status})`,
+        );
+      }
+
       setPreview(data.secure_url);
       onChange(data.public_id);
     } catch (err) {
@@ -74,10 +90,22 @@ export function ImageUploader({ kind = 'option', value, onChange, label = 'Add i
     );
   }
 
+  // Checked after `value` so a poll that already carries an image can still
+  // have it removed on a deployment where uploads have since been switched off.
+  if (uploadsDisabled) {
+    return (
+      <p className="text-xs" style={{ color: 'var(--muted)' }}>
+        Image uploads are not configured on this deployment.
+      </p>
+    );
+  }
+
   return (
     <div>
       <label
-        className="inline-flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-1.5 text-xs"
+        className={`inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs ${
+          busy || loadingFeatures ? 'cursor-default opacity-60' : 'cursor-pointer'
+        }`}
         style={{ borderColor: 'var(--ring)', color: 'var(--ink-2)' }}
       >
         {busy ? <Spinner size={14} /> : '＋'} {busy ? 'Uploading…' : label}
@@ -85,7 +113,8 @@ export function ImageUploader({ kind = 'option', value, onChange, label = 'Add i
           type="file"
           accept="image/*"
           className="hidden"
-          disabled={busy}
+          // Disabled until the flag lands, so a click cannot outrun the answer.
+          disabled={busy || loadingFeatures}
           onChange={(e) => upload(e.target.files?.[0])}
         />
       </label>

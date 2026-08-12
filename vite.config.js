@@ -11,6 +11,9 @@ export default defineConfig({
       // the default dedup mode depends on) are actually sent and stored.
       '/api': { target: 'http://localhost:3000', changeOrigin: true },
       '/ws': { target: 'ws://localhost:3000', ws: true },
+      // Outside /api, but the client reads its feature flags from it. Without
+      // this the dev server answers with index.html and every flag looks off.
+      '/health': { target: 'http://localhost:3000', changeOrigin: true },
     },
   },
   build: {
