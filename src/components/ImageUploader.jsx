@@ -77,7 +77,7 @@ export function ImageUploader({ kind = 'option', value, onChange, label = 'Add i
             src={preview}
             alt=""
             className="h-12 w-12 rounded object-cover"
-            style={{ border: '1px solid var(--ring)' }}
+            style={{ border: '1px solid var(--line)' }}
           />
         )}
         <span className="truncate text-xs" style={{ color: 'var(--muted)' }}>
@@ -106,7 +106,7 @@ export function ImageUploader({ kind = 'option', value, onChange, label = 'Add i
         className={`inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs ${
           busy || loadingFeatures ? 'cursor-default opacity-60' : 'cursor-pointer'
         }`}
-        style={{ borderColor: 'var(--ring)', color: 'var(--ink-2)' }}
+        style={{ borderColor: 'var(--line)', color: 'var(--ink-2)' }}
       >
         {busy ? <Spinner size={14} /> : '＋'} {busy ? 'Uploading…' : label}
         <input

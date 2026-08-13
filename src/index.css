@@ -3,6 +3,24 @@
 /*
  * Design tokens.
  *
+ * The scales here follow Practical UI and the UI/UX Playbook:
+ *
+ *   Type      A 1.200 (Minor Third) scale off a 16px body. Small scales suit
+ *             tools and dashboards, where a lot of levels have to coexist in
+ *             one view; large scales are for marketing pages. Line height
+ *             falls as size rises — 1.6 for body copy, 1.1 for display.
+ *   Spacing   The 8pt set (8/16/24/32/48/80) maps onto Tailwind's 2/4/6/8/12/20.
+ *             Those are the steps to reach for; the odd ones exist but should
+ *             stay rare, and space inside a group is always less than the
+ *             space between groups.
+ *   Elevation Three steps. Light comes from the top, small-and-sharp barely
+ *             lifts, large-and-soft lifts far, and the shadow is tinted from
+ *             the palette's darkest warm shade rather than black so it sits in
+ *             the same family as everything else.
+ *   Ink       Neither pure black nor pure white — both are harsh against a
+ *             tinted surface — and no grey lighter than 4.5:1 on its own
+ *             background, which rules out the pretty-but-unreadable greys.
+ *
  * Chart colors are the validated palette from the data-viz reference — the
  * dark column is the same hues re-stepped for the dark surface, not an
  * automatic flip. Both sets were run through the validator: all checks pass
@@ -11,12 +29,13 @@
  * direct labels AND a table view — that is the required relief, not a nicety.
  */
 @theme {
-  --color-surface: #fcfcfb;
-  --color-plane: #f9f9f7;
-  --color-ink: #0b0b0b;
+  --color-surface: #ffffff;
+  --color-plane: #f4f3ef;
+  --color-raised: #ffffff;
+  --color-ink: #1a1a18;
   --color-ink-2: #52514e;
-  --color-muted: #898781;
-  --color-line: #e1e0d9;
+  --color-muted: #6f6d67;
+  --color-line: #e4e2db;
   --color-axis: #c3c2b7;
 
   --color-brand: #2a78d6;
@@ -31,23 +50,78 @@
   --color-s3: #1baf7a;
   --color-s4: #eda100;
   --color-s5: #e87ba4;
+
+  /* 1.200 Minor Third off a 16px base, rounded to whole pixels. Line heights
+     tighten as the size grows, and tracking pulls in on display sizes where
+     default spacing reads as loose. */
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1.5;
+  --text-sm: 0.875rem;
+  --text-sm--line-height: 1.5;
+  --text-base: 1rem;
+  --text-base--line-height: 1.6;
+  --text-lg: 1.1875rem;
+  --text-lg--line-height: 1.45;
+  --text-xl: 1.4375rem;
+  --text-xl--line-height: 1.35;
+  --text-2xl: 1.75rem;
+  --text-2xl--line-height: 1.25;
+  --text-2xl--letter-spacing: -0.015em;
+  --text-3xl: 2.0625rem;
+  --text-3xl--line-height: 1.2;
+  --text-3xl--letter-spacing: -0.02em;
+  --text-4xl: 2.5rem;
+  --text-4xl--line-height: 1.12;
+  --text-4xl--letter-spacing: -0.025em;
+  --text-5xl: 3rem;
+  --text-5xl--line-height: 1.08;
+  --text-5xl--letter-spacing: -0.03em;
+
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.25rem;
+
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @layer base {
   :root {
     color-scheme: light;
-    --surface: #fcfcfb;
-    --plane: #f9f9f7;
-    --ink: #0b0b0b;
+
+    /* Page sits darker than the cards on it: lighter surfaces read as nearer,
+       which is most of what makes a card look like a card. */
+    --plane: #f4f3ef;
+    --surface: #ffffff;
+    --raised: #ffffff;
+
+    --ink: #1a1a18;
     --ink-2: #52514e;
-    --muted: #898781;
-    --line: #e1e0d9;
+    --muted: #6f6d67;
+    --line: #d9d7ce;
     --axis: #c3c2b7;
     --brand: #2a78d6;
     --brand-ink: #1c5cab;
-    --ring: rgba(11, 11, 11, 0.1);
+    --brand-wash: #eaf2fc;
+    --ring: rgba(26, 26, 24, 0.12);
     --good: #006300;
-    --critical: #d03b3b;
+    --critical: #c22f2f;
+
+    /* Solid fills carry a label, so they are picked for label contrast rather
+       than for vibrancy: --brand at 4.42:1 under white text was short of the
+       4.5 minimum, which is exactly the case the book says to darken for. */
+    --brand-fill: #2168c0;
+    --brand-fill-hover: #1b5aa8;
+    --on-brand: #ffffff;
+    --critical-fill: #c22f2f;
+    --critical-fill-hover: #a82727;
+    --on-critical: #ffffff;
+
+    /* Warm-tinted rather than black, so shadows belong to the palette. */
+    --elev-1: 0 1px 2px rgba(26, 26, 24, 0.06), 0 1px 1px rgba(26, 26, 24, 0.04);
+    --elev-2: 0 4px 12px rgba(26, 26, 24, 0.08), 0 1px 3px rgba(26, 26, 24, 0.05);
+    --elev-3: 0 14px 34px rgba(26, 26, 24, 0.12), 0 3px 8px rgba(26, 26, 24, 0.06);
 
     --s1: #2a78d6;
     --s2: #eb6834;
@@ -61,18 +135,37 @@
   @media (prefers-color-scheme: dark) {
     :root:where(:not([data-theme='light'])) {
       color-scheme: dark;
-      --surface: #1a1a19;
-      --plane: #0d0d0d;
-      --ink: #ffffff;
+      --plane: #121211;
+      --surface: #1c1c1a;
+      --raised: #232321;
+
+      --ink: #f2f1ed;
       --ink-2: #c3c2b7;
-      --muted: #898781;
+      --muted: #949289;
       --line: #2c2c2a;
       --axis: #383835;
       --brand: #3987e5;
       --brand-ink: #86b6ef;
-      --ring: rgba(255, 255, 255, 0.1);
-      --good: #0ca30c;
-      --critical: #d03b3b;
+      --brand-wash: #17273a;
+      --ring: rgba(255, 255, 255, 0.12);
+      --good: #22b422;
+      --critical: #e05a5a;
+
+      /* Dark mode inverts the pairing: the accent stays bright and the label
+         goes near-black, which reads better on a dark plane than a darkened
+         fill under white text. */
+      --brand-fill: #3987e5;
+      --brand-fill-hover: #4f95ea;
+      --on-brand: #10100f;
+      --critical-fill: #e05a5a;
+      --critical-fill-hover: #e97070;
+      --on-critical: #10100f;
+
+      /* A shadow on a dark plane barely registers, so elevation leans on the
+         surface getting lighter; the shadow only deepens the edge. */
+      --elev-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+      --elev-2: 0 4px 12px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.4);
+      --elev-3: 0 14px 34px rgba(0, 0, 0, 0.6), 0 3px 8px rgba(0, 0, 0, 0.45);
 
       --s1: #3987e5;
       --s2: #d95926;
@@ -84,18 +177,32 @@
 
   :root[data-theme='dark'] {
     color-scheme: dark;
-    --surface: #1a1a19;
-    --plane: #0d0d0d;
-    --ink: #ffffff;
+    --plane: #121211;
+    --surface: #1c1c1a;
+    --raised: #232321;
+
+    --ink: #f2f1ed;
     --ink-2: #c3c2b7;
-    --muted: #898781;
+    --muted: #949289;
     --line: #2c2c2a;
     --axis: #383835;
     --brand: #3987e5;
     --brand-ink: #86b6ef;
-    --ring: rgba(255, 255, 255, 0.1);
-    --good: #0ca30c;
-    --critical: #d03b3b;
+    --brand-wash: #17273a;
+    --ring: rgba(255, 255, 255, 0.12);
+    --good: #22b422;
+    --critical: #e05a5a;
+
+    --brand-fill: #3987e5;
+    --brand-fill-hover: #4f95ea;
+    --on-brand: #10100f;
+    --critical-fill: #e05a5a;
+    --critical-fill-hover: #e97070;
+    --on-critical: #10100f;
+
+    --elev-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --elev-2: 0 4px 12px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.4);
+    --elev-3: 0 14px 34px rgba(0, 0, 0, 0.6), 0 3px 8px rgba(0, 0, 0, 0.45);
 
     --s1: #3987e5;
     --s2: #d95926;
@@ -113,11 +220,26 @@
     color: var(--ink);
     font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
     -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Vote counts, percentages and dates sit in columns and change in place.
+     Proportional digits make them jitter; tabular ones hold the column. */
+  th,
+  td,
+  time,
+  [data-numeric] {
+    font-variant-numeric: tabular-nums;
   }
 
   :focus-visible {
     outline: 2px solid var(--brand);
     outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--brand) 22%, transparent);
   }
 
   /* Respect the OS setting rather than animating regardless. */
@@ -127,15 +249,270 @@
     *::after {
       animation-duration: 0.01ms !important;
       transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
     }
   }
 }
 
 @layer components {
+  /* Elevation steps. Applied as classes rather than @theme shadows because the
+     dark palette needs its own values and @theme resolves once. */
+  .elev-1 {
+    box-shadow: var(--elev-1);
+  }
+  .elev-2 {
+    box-shadow: var(--elev-2);
+  }
+  .elev-3 {
+    box-shadow: var(--elev-3);
+  }
+
   .card {
     background: var(--surface);
-    border: 1px solid var(--ring);
-    border-radius: 0.75rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--elev-1);
+  }
+
+  /* For cards that are themselves interactive — a poll in a list, a template
+     tile. The lift on hover is the affordance. */
+  .card-interactive {
+    transition:
+      box-shadow 160ms var(--ease-out-soft),
+      transform 160ms var(--ease-out-soft),
+      border-color 160ms var(--ease-out-soft);
+  }
+  .card-interactive:hover {
+    box-shadow: var(--elev-2);
+    transform: translateY(-2px);
+    border-color: var(--ring);
+  }
+
+  /*
+   * Buttons.
+   *
+   * Variants live here rather than in inline styles so that hover, active and
+   * disabled are real CSS states. Hover shifts the fill through a named token
+   * per theme — darker in light, lighter in dark — instead of a blanket
+   * brightness filter, which moves the wrong way in one of the two themes.
+   *
+   * The press state drops the element by a pixel and flattens its shadow: the
+   * button reads as being pushed toward the page.
+   */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: var(--radius-md);
+    font-weight: 500;
+    white-space: nowrap;
+    transition:
+      background-color 140ms var(--ease-out-soft),
+      border-color 140ms var(--ease-out-soft),
+      box-shadow 140ms var(--ease-out-soft),
+      transform 80ms var(--ease-out-soft);
+  }
+  .btn:active:not(:disabled) {
+    transform: translateY(1px);
+    box-shadow: none;
+  }
+  .btn:disabled,
+  .btn[aria-disabled='true'] {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  .btn-primary {
+    background: var(--brand-fill);
+    color: var(--on-brand);
+    box-shadow: var(--elev-1);
+  }
+  .btn-primary:hover:not(:disabled) {
+    background: var(--brand-fill-hover);
+    box-shadow: var(--elev-2);
+  }
+
+  .btn-danger {
+    background: var(--critical-fill);
+    color: var(--on-critical);
+    box-shadow: var(--elev-1);
+  }
+  .btn-danger:hover:not(:disabled) {
+    background: var(--critical-fill-hover);
+    box-shadow: var(--elev-2);
+  }
+
+  .btn-secondary {
+    background: var(--surface);
+    color: var(--ink);
+    border: 1px solid var(--line);
+    box-shadow: var(--elev-1);
+  }
+  .btn-secondary:hover:not(:disabled) {
+    background: var(--plane);
+    border-color: var(--axis);
+  }
+
+  .btn-ghost {
+    color: var(--ink-2);
+  }
+  .btn-ghost:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--ink) 7%, transparent);
+    color: var(--ink);
+  }
+
+  /*
+   * Form controls.
+   *
+   * The resting border is visible without being loud, and focus is carried by
+   * a ring in the brand colour plus a border shift — never by colour alone,
+   * which would strand anyone who cannot separate the two hues.
+   */
+  .input {
+    width: 100%;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink);
+    padding: 0.625rem 0.75rem;
+    font-size: var(--text-sm);
+    line-height: 1.5;
+    transition:
+      border-color 140ms var(--ease-out-soft),
+      box-shadow 140ms var(--ease-out-soft);
+  }
+  .input::placeholder {
+    color: var(--muted);
+  }
+  .input:hover:not(:disabled):not(:focus) {
+    border-color: var(--axis);
+  }
+  .input:focus {
+    outline: none;
+    border-color: var(--brand);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 22%, transparent);
+  }
+  .input[aria-invalid='true'] {
+    border-color: var(--critical);
+  }
+  .input[aria-invalid='true']:focus {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--critical) 22%, transparent);
+  }
+  .input:disabled {
+    background: var(--plane);
+    color: var(--muted);
+    cursor: not-allowed;
+  }
+
+  /*
+   * Respondent option rows.
+   *
+   * The selected state is carried three ways — border, wash and a filled mark
+   * — because this is the one control in the product where getting the state
+   * wrong means the wrong vote is cast, and colour alone would leave that
+   * reading to anyone who can separate the two hues.
+   */
+  .option-row {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    gap: 0.75rem;
+    min-height: 3rem;
+    padding: 0.75rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    text-align: left;
+    font-size: var(--text-sm);
+    line-height: 1.5;
+    transition:
+      border-color 140ms var(--ease-out-soft),
+      background-color 140ms var(--ease-out-soft),
+      box-shadow 140ms var(--ease-out-soft);
+  }
+  .option-row:hover:not([data-selected]) {
+    border-color: var(--axis);
+    background: var(--plane);
+  }
+  .option-row[data-selected] {
+    border-color: var(--brand);
+    background: color-mix(in srgb, var(--brand) 9%, transparent);
+    box-shadow: 0 0 0 1px var(--brand);
+  }
+
+  .option-mark {
+    display: flex;
+    height: 1.25rem;
+    width: 1.25rem;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border: 1.5px solid var(--axis);
+    background: transparent;
+    color: var(--on-brand);
+    transition:
+      border-color 140ms var(--ease-out-soft),
+      background-color 140ms var(--ease-out-soft);
+  }
+  .option-row[data-selected] .option-mark {
+    border-color: var(--brand-fill);
+    background: var(--brand-fill);
+  }
+
+  /* Rating scale buttons — same states, square target. */
+  .rating-button {
+    height: 2.75rem;
+    width: 2.75rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    color: var(--ink);
+    font-size: var(--text-sm);
+    font-variant-numeric: tabular-nums;
+    transition:
+      border-color 140ms var(--ease-out-soft),
+      background-color 140ms var(--ease-out-soft),
+      color 140ms var(--ease-out-soft);
+  }
+  .rating-button:hover:not([data-selected]) {
+    border-color: var(--axis);
+    background: var(--plane);
+  }
+  .rating-button[data-selected] {
+    border-color: var(--brand-fill);
+    background: var(--brand-fill);
+    color: var(--on-brand);
+    font-weight: 600;
+  }
+
+  /*
+   * Section tabs.
+   *
+   * An underline on the active tab rather than a filled pill: these sit
+   * directly above the panel they switch, and the rule reads as the panel's
+   * top edge continuing up into the label.
+   */
+  .tab {
+    position: relative;
+    padding: 0.625rem 0.25rem;
+    margin-bottom: -1px;
+    border-bottom: 2px solid transparent;
+    color: var(--ink-2);
+    font-size: var(--text-sm);
+    text-transform: capitalize;
+    transition:
+      color 140ms var(--ease-out-soft),
+      border-color 140ms var(--ease-out-soft);
+  }
+  .tab:hover:not([data-active]) {
+    color: var(--ink);
+    border-bottom-color: var(--axis);
+  }
+  .tab[data-active] {
+    color: var(--brand-ink);
+    border-bottom-color: var(--brand);
+    font-weight: 500;
   }
 
   .skip-link {
@@ -148,7 +525,8 @@
     z-index: 50;
     padding: 0.5rem 0.75rem;
     background: var(--surface);
-    border: 1px solid var(--ring);
-    border-radius: 0.5rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    box-shadow: var(--elev-2);
   }
 }

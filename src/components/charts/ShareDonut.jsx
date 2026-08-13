@@ -103,7 +103,7 @@ export function ShareDonut({ options, tallies, size = 190 }) {
             <span
               aria-hidden
               className="h-3 w-3 shrink-0 rounded-sm"
-              style={{ background: arc.color, outline: '1px solid var(--ring)' }}
+              style={{ background: arc.color, outline: '1px solid var(--line)' }}
             />
             <span className="min-w-0 flex-1 truncate" style={{ color: 'var(--ink-2)' }}>
               {arc.label}

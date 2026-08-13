@@ -4,7 +4,7 @@ import { apiFeatures, pollsApi, responsesApi } from '../lib/api.js';
 import { useAsync, useAction, useDocumentTitle } from '../lib/hooks.js';
 import { useLiveTallies } from '../lib/useLiveTallies.js';
 import { formatCount, relativeTime, CHOICE_TYPES } from '../lib/format.js';
-import { Button, Card, Field, Input, Textarea, ErrorNote, Spinner } from '../components/ui.jsx';
+import { Button, Card, Field, Input, Textarea, ErrorNote, Skeleton } from '../components/ui.jsx';
 import { ResultBars } from '../components/charts/ResultBars.jsx';
 import { Turnstile, isTurnstileConfigured } from '../components/Turnstile.jsx';
 
@@ -69,20 +69,50 @@ export function Respond() {
   }, [questions, answers]);
 
   if (loading) {
+    // Shaped like the poll that is about to load. On the slow connections this
+    // page is measured against, a centred spinner says only "wait"; this says
+    // what is coming and holds its position when it lands.
     return (
-      <div className="flex justify-center py-24">
-        <Spinner size={28} label="Loading poll" />
+      <div className="space-y-6">
+        <span className="sr-only" role="status">
+          Loading poll
+        </span>
+        <div>
+          <Skeleton className="h-7 w-3/4" />
+          <Skeleton className="mt-3 h-4 w-1/2" />
+        </div>
+        <Card>
+          <Skeleton className="h-4 w-2/3" />
+          <div className="mt-5 space-y-3">
+            {Array.from({ length: 4 }, (_, i) => (
+              <Skeleton key={i} className="h-12 w-full rounded-lg" />
+            ))}
+          </div>
+        </Card>
       </div>
     );
   }
 
   if (error) {
     return (
-      <Card className="text-center">
+      <Card className="flex flex-col items-center gap-3 py-12 text-center">
+        <span
+          aria-hidden
+          className="inline-flex h-12 w-12 items-center justify-center rounded-full"
+          style={{
+            background: 'color-mix(in srgb, var(--critical) 12%, transparent)',
+            color: 'var(--critical)',
+          }}
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 8v4.5M12 16h.01" />
+          </svg>
+        </span>
         <h1 className="text-lg font-semibold">
           {error.status === 404 ? 'Poll not found' : 'Something went wrong'}
         </h1>
-        <p className="mt-2 text-sm" style={{ color: 'var(--ink-2)' }}>
+        <p className="max-w-sm text-sm" style={{ color: 'var(--ink-2)' }}>
           {error.status === 404
             ? 'This link may be wrong, or the poll may have been removed.'
             : error.message}
@@ -223,25 +253,37 @@ export function Respond() {
           </Card>
         )}
 
-        <Button
-          type="submit"
-          size="lg"
-          loading={pending}
-          disabled={missing.length > 0 || (challengeRequired && !turnstileToken)}
-          className="w-full"
+        {/* Stuck to the bottom of the viewport and lifted off the page, so on
+            a long survey the action stays in reach instead of sitting somewhere
+            below the fold. The fade keeps the questions from colliding with it
+            as they scroll underneath. */}
+        <div
+          className="sticky bottom-0 -mx-4 mt-2 px-4 pt-4 pb-4"
+          style={{
+            background:
+              'linear-gradient(to top, var(--plane) 0%, var(--plane) 68%, transparent 100%)',
+          }}
         >
-          {missing.length > 0
-            ? `${missing.length} question${missing.length > 1 ? 's' : ''} left`
-            : challengeRequired && !turnstileToken
-              ? 'Complete the verification check'
-              : 'Submit'}
-        </Button>
+          <Button
+            type="submit"
+            size="lg"
+            loading={pending}
+            disabled={missing.length > 0 || (challengeRequired && !turnstileToken)}
+            className="w-full"
+          >
+            {missing.length > 0
+              ? `${missing.length} question${missing.length > 1 ? 's' : ''} left`
+              : challengeRequired && !turnstileToken
+                ? 'Complete the verification check'
+                : 'Submit'}
+          </Button>
 
-        <p className="text-center text-xs" style={{ color: 'var(--muted)' }}>
-          {poll.identityMode === 'anonymous'
-            ? 'Your response is anonymous.'
-            : 'Your name will be recorded with your response.'}
-        </p>
+          <p className="mt-3 text-center text-xs" style={{ color: 'var(--muted)' }}>
+            {poll.identityMode === 'anonymous'
+              ? 'Your response is anonymous.'
+              : 'Your name will be recorded with your response.'}
+          </p>
+        </div>
       </form>
     </PollShell>
   );
@@ -249,24 +291,31 @@ export function Respond() {
 
 function PollShell({ poll, children }) {
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       {poll.coverUrl && (
         <img
           src={poll.coverUrl}
           alt=""
-          className="h-40 w-full rounded-xl object-cover"
-          style={{ border: '1px solid var(--ring)' }}
+          className="aspect-[16/6] w-full rounded-xl object-cover"
+          style={{ border: '1px solid var(--line)', boxShadow: 'var(--elev-1)' }}
         />
       )}
       <div>
-        <h1 className="text-xl font-semibold tracking-tight">{poll.title}</h1>
+        <h1 className="text-2xl font-semibold">{poll.title}</h1>
         {poll.description && (
-          <p className="mt-1 text-sm" style={{ color: 'var(--ink-2)' }}>
+          <p className="mt-2 text-base" style={{ color: 'var(--ink-2)' }}>
             {poll.description}
           </p>
         )}
         {poll.closesAt && (
-          <p className="mt-1 text-xs" style={{ color: 'var(--muted)' }}>
+          <p
+            className="mt-3 inline-flex items-center gap-1.5 text-xs"
+            style={{ color: 'var(--muted)' }}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 7v5.2l3 1.8" />
+            </svg>
             Closes {relativeTime(poll.closesAt)}
           </p>
         )}
@@ -295,7 +344,7 @@ function QuestionCard({ question, value, onChange }) {
   return (
     <Card>
       <fieldset>
-        <legend className="mb-3 font-medium">
+        <legend className="mb-4 text-base font-medium">
           {question.prompt}
           {!question.required && (
             <span className="ml-2 text-xs font-normal" style={{ color: 'var(--muted)' }}>
@@ -314,28 +363,21 @@ function QuestionCard({ question, value, onChange }) {
                   type="button"
                   onClick={() => toggle(option.id)}
                   aria-pressed={isSelected}
-                  // Whole row is the hit target — a 44px tap area rather than
+                  // Whole row is the hit target — a 48px tap area rather than
                   // a 16px radio dot, because this is a phone-first page.
-                  className="flex w-full items-center gap-3 rounded-lg border px-3 py-3 text-left text-sm transition"
-                  style={{
-                    borderColor: isSelected ? 'var(--brand)' : 'var(--ring)',
-                    background: isSelected
-                      ? 'color-mix(in srgb, var(--brand) 8%, transparent)'
-                      : 'transparent',
-                  }}
+                  className="option-row"
+                  data-selected={isSelected || undefined}
                 >
                   <span
-                    className="flex h-5 w-5 shrink-0 items-center justify-center border"
-                    style={{
-                      borderRadius: isMulti ? '0.25rem' : '9999px',
-                      borderColor: isSelected ? 'var(--brand)' : 'var(--axis)',
-                      background: isSelected ? 'var(--brand)' : 'transparent',
-                      color: '#fff',
-                      fontSize: 12,
-                    }}
+                    className="option-mark"
+                    style={{ borderRadius: isMulti ? '0.3rem' : '9999px' }}
                     aria-hidden
                   >
-                    {isSelected ? '✓' : ''}
+                    {isSelected && (
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="m5 12.5 4.5 4.5L19 7.5" />
+                      </svg>
+                    )}
                   </span>
 
                   {option.imageUrl && (
@@ -343,7 +385,8 @@ function QuestionCard({ question, value, onChange }) {
                       src={option.imageUrl}
                       alt=""
                       loading="lazy"
-                      className="h-16 w-16 shrink-0 rounded object-cover"
+                      className="h-16 w-16 shrink-0 rounded-md object-cover"
+                      style={{ border: '1px solid var(--line)' }}
                     />
                   )}
                   <span className="min-w-0">{option.label}</span>
@@ -361,12 +404,8 @@ function QuestionCard({ question, value, onChange }) {
                 type="button"
                 onClick={() => onChange(String(n))}
                 aria-pressed={value === String(n)}
-                className="h-11 w-11 rounded-lg border text-sm tabular-nums transition"
-                style={{
-                  borderColor: value === String(n) ? 'var(--brand)' : 'var(--ring)',
-                  background: value === String(n) ? 'var(--brand)' : 'transparent',
-                  color: value === String(n) ? '#fff' : 'var(--ink)',
-                }}
+                className="rating-button"
+                data-selected={value === String(n) || undefined}
               >
                 {n}
               </button>
@@ -388,20 +427,29 @@ function QuestionCard({ question, value, onChange }) {
 
 function ThankYou({ poll, questions, tallies, result }) {
   return (
-    <div className="space-y-5">
-      <Card className="text-center">
-        <p className="text-2xl" aria-hidden>
-          ✓
-        </p>
-        <h1 className="mt-2 text-lg font-semibold">Response recorded</h1>
-        <p className="mt-1 text-sm" style={{ color: 'var(--ink-2)' }}>
-          {formatCount(result.responseCount)} responses so far.
+    <div className="space-y-6">
+      <Card className="flex flex-col items-center gap-3 py-10 text-center">
+        <span
+          aria-hidden
+          className="inline-flex h-14 w-14 items-center justify-center rounded-full"
+          style={{
+            background: 'color-mix(in srgb, var(--good) 14%, transparent)',
+            color: 'var(--good)',
+          }}
+        >
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="m5 12.5 4.5 4.5L19 7.5" />
+          </svg>
+        </span>
+        <h1 className="text-xl font-semibold">Response recorded</h1>
+        <p className="text-sm" style={{ color: 'var(--ink-2)' }}>
+          <span data-numeric>{formatCount(result.responseCount)}</span> responses so far.
         </p>
       </Card>
 
       {result.resultsVisible ? (
         <Card className="space-y-6">
-          <h2 className="text-sm font-semibold">Results</h2>
+          <h2 className="text-base font-semibold">Results</h2>
           {questions
             .filter((q) => CHOICE_TYPES.includes(q.type))
             .map((q) => (
@@ -425,8 +473,8 @@ function ThankYou({ poll, questions, tallies, result }) {
         </Card>
       )}
 
-      <p className="text-center text-sm">
-        <a href="/signup" style={{ color: 'var(--brand-ink)' }}>
+      <p className="text-center text-sm font-medium">
+        <a href="/signup" className="hover:underline" style={{ color: 'var(--brand-ink)' }}>
           Create your own poll — free
         </a>
       </p>

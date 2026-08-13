@@ -79,18 +79,34 @@ export function Builder() {
   if (mode === null) {
     return (
       <>
-        <PageHeader title="What are you making?" />
-        <div className="grid gap-4 sm:grid-cols-2">
+        <PageHeader
+          title="What are you making?"
+          description="You can change everything else later — this only sets how many questions the poll can hold."
+        />
+        {/* The two choices are cards rather than a select: this is the first
+            decision in the flow and the difference between them is a sentence,
+            not a word. `brightness` was the old hover — it darkens an already
+            dark card in dark mode, so the lift replaces it. */}
+        <div className="grid gap-5 sm:grid-cols-2">
           <button
             type="button"
-            className="card p-6 text-left transition hover:brightness-[0.98]"
+            className="card card-interactive p-6 text-left"
             onClick={() => {
               setMode('vote');
               set({ type: 'vote', questions: [emptyQuestion()] });
             }}
           >
-            <h2 className="font-semibold">Quick Vote</h2>
-            <p className="mt-1 text-sm" style={{ color: 'var(--ink-2)' }}>
+            <span
+              aria-hidden
+              className="inline-flex h-10 w-10 items-center justify-center rounded-lg"
+              style={{ background: 'var(--brand-wash)', color: 'var(--brand-ink)' }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 19V11M12 19V5M19 19v-5" />
+              </svg>
+            </span>
+            <h2 className="mt-4 font-semibold">Quick Vote</h2>
+            <p className="mt-1.5 text-sm" style={{ color: 'var(--ink-2)' }}>
               One question, a set of options, published in under a minute. Best for "where should
               we meet?" and one-off decisions.
             </p>
@@ -98,14 +114,23 @@ export function Builder() {
 
           <button
             type="button"
-            className="card p-6 text-left transition hover:brightness-[0.98]"
+            className="card card-interactive p-6 text-left"
             onClick={() => {
               setMode('survey');
               set({ type: 'survey' });
             }}
           >
-            <h2 className="font-semibold">Survey</h2>
-            <p className="mt-1 text-sm" style={{ color: 'var(--ink-2)' }}>
+            <span
+              aria-hidden
+              className="inline-flex h-10 w-10 items-center justify-center rounded-lg"
+              style={{ background: 'var(--brand-wash)', color: 'var(--brand-ink)' }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 6h16M4 12h16M4 18h10" />
+              </svg>
+            </span>
+            <h2 className="mt-4 font-semibold">Survey</h2>
+            <p className="mt-1.5 text-sm" style={{ color: 'var(--ink-2)' }}>
               Multiple questions with mixed types — choice, rating, free text. Best for feedback
               and research.
             </p>
@@ -143,8 +168,8 @@ export function Builder() {
       )}
 
       <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
-        <div className="space-y-4">
-          <Card className="space-y-4">
+        <div className="space-y-5">
+          <Card className="space-y-5">
             <Field label="Title" htmlFor="title" required error={fieldErrors.title}>
               <Input
                 id="title"
@@ -198,9 +223,9 @@ export function Builder() {
           )}
         </div>
 
-        <aside className="space-y-4">
-          <Card className="space-y-4">
-            <h2 className="text-sm font-semibold">Settings</h2>
+        <aside className="space-y-5">
+          <Card className="space-y-5">
+            <h2 className="text-base font-semibold">Settings</h2>
 
             <Field label="Who can find it" htmlFor="visibility">
               <Select
@@ -282,7 +307,7 @@ export function Builder() {
           </Card>
 
           <Card className="space-y-4">
-            <h2 className="text-sm font-semibold">Schedule</h2>
+            <h2 className="text-base font-semibold">Schedule</h2>
             <Field label="Opens" htmlFor="opens" hint="Leave blank to open on publish.">
               <Input
                 id="opens"

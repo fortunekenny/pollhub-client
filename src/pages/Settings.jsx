@@ -22,11 +22,11 @@ export function Settings() {
     <>
       <PageHeader title="Settings" description={user?.email} />
 
-      <div className="max-w-2xl space-y-4">
+      <div className="max-w-2xl space-y-5">
         <PushCard />
 
         <Card>
-          <h2 className="text-sm font-semibold">Notifications</h2>
+          <h2 className="text-base font-semibold">Notifications</h2>
           <p className="mb-4 mt-1 text-sm" style={{ color: 'var(--ink-2)' }}>
             Choose how you hear about each event. Everything is on by default.
           </p>
@@ -124,7 +124,7 @@ function PushCard() {
   if (!support.supported) {
     return (
       <Card>
-        <h2 className="text-sm font-semibold">Browser notifications</h2>
+        <h2 className="text-base font-semibold">Browser notifications</h2>
         <p className="mt-1 text-sm" style={{ color: 'var(--ink-2)' }}>
           This browser doesn't support web push. On iOS, add PollHub to your Home Screen first —
           Safari only allows notifications for installed sites.
@@ -136,7 +136,7 @@ function PushCard() {
   if (!support.configured) {
     return (
       <Card>
-        <h2 className="text-sm font-semibold">Browser notifications</h2>
+        <h2 className="text-base font-semibold">Browser notifications</h2>
         <p className="mt-1 text-sm" style={{ color: 'var(--ink-2)' }}>
           Not configured on this deployment — set the Firebase keys to enable web push.
         </p>
@@ -148,7 +148,7 @@ function PushCard() {
     <Card>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-sm font-semibold">Browser notifications</h2>
+          <h2 className="text-base font-semibold">Browser notifications</h2>
           <p className="mt-1 text-sm" style={{ color: 'var(--ink-2)' }}>
             Get told when a poll closes, without keeping the tab open.
           </p>
