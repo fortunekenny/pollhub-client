@@ -27,6 +27,18 @@ services:
       - key: VITE_WS_URL
         value: wss://pollhub-api.onrender.com/ws
 
+      # Turnstile's SITE key — public, and inlined into the bundle like the
+      # rest of these. sync:false only because the value is not mine to commit.
+      #
+      # Pairs with TURNSTILE_SECRET_KEY on the API: the API rejects every
+      # response with "Verification challenge failed" whenever it holds a
+      # secret and no token arrives. Set both or neither. This one also needs
+      # a rebuild to take effect, since the secret takes effect on restart —
+      # the API can start demanding tokens before a bundle exists that sends
+      # them.
+      - key: VITE_TURNSTILE_SITE_KEY
+        sync: false
+
     routes:
       # SPA fallback. Without it, every deep link — /p/abc123, /dashboard,
       # /polls/:id — returns 404 on refresh or when opened cold from a shared
