@@ -4,7 +4,19 @@ import { Button, Card } from './ui.jsx';
 
 export function SharePanel({ poll }) {
   const { copy, copied } = useCopy();
-  const url = poll.share?.url ?? `${location.origin}/p/${poll.slug}`;
+
+  /*
+   * Built from the browser's own origin, not from the API's share.url.
+   *
+   * That field comes from PUBLIC_POLL_BASE_URL on the server, so a deployment
+   * whose env drifted hands out a link to localhost — which is what happened
+   * here. The page being linked to is a client route on this origin, and the
+   * client is the one thing that always knows that address correctly.
+   *
+   * The QR below is still rendered server-side from the same env var, so it
+   * can disagree with this link until the deployment is fixed.
+   */
+  const url = `${location.origin}/p/${poll.slug}`;
 
   return (
     <Card className="space-y-5">
