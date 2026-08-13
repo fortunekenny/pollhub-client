@@ -8,9 +8,11 @@ import {
   Button,
   Badge,
   Card,
+  EmptyState,
   ErrorNote,
   PageHeader,
   Spinner,
+  Skeleton,
   Field,
   Input,
 } from '../components/ui.jsx';
@@ -35,9 +37,18 @@ export function PollDetail() {
 
   if (loading) {
     return (
-      <div className="flex justify-center py-24">
-        <Spinner size={28} label="Loading poll" />
-      </div>
+      <>
+        <span className="sr-only" role="status">
+          Loading poll
+        </span>
+        <Skeleton className="h-8 w-1/2" />
+        <Skeleton className="mt-3 h-4 w-2/3" />
+        <div className="mt-6 flex gap-2">
+          <Skeleton className="h-6 w-20 rounded-full" />
+          <Skeleton className="h-6 w-24 rounded-full" />
+        </div>
+        <Skeleton className="mt-8 h-64 w-full rounded-lg" />
+      </>
     );
   }
   if (error) return <ErrorNote error={error} />;
@@ -106,19 +117,19 @@ export function PollDetail() {
         )}
       </div>
 
-      <nav className="mb-5 flex gap-1" aria-label="Poll sections">
+      <nav
+        className="mb-6 flex gap-6 overflow-x-auto"
+        aria-label="Poll sections"
+        style={{ borderBottom: '1px solid var(--line)' }}
+      >
         {['results', 'share', 'analytics', 'invites'].map((t) => (
           <button
             key={t}
             type="button"
             onClick={() => setTab(t)}
             aria-current={tab === t ? 'page' : undefined}
-            className="rounded-lg px-3 py-1.5 text-sm capitalize transition"
-            style={
-              tab === t
-                ? { background: 'var(--surface)', border: '1px solid var(--ring)' }
-                : { color: 'var(--ink-2)' }
-            }
+            className="tab"
+            data-active={tab === t || undefined}
           >
             {t}
           </button>
@@ -140,14 +151,14 @@ function ResultsTab({ poll, questions, tallies }) {
 
   if (poll.responseCount === 0) {
     return (
-      <Card className="py-12 text-center">
-        <p className="font-medium">No responses yet</p>
-        <p className="mt-1 text-sm" style={{ color: 'var(--ink-2)' }}>
-          {poll.status === 'draft'
+      <EmptyState
+        title="No responses yet"
+        description={
+          poll.status === 'draft'
             ? 'Publish the poll to start collecting responses.'
-            : 'Share the link and results will appear here as they arrive.'}
-        </p>
-      </Card>
+            : 'Share the link and results will appear here as they arrive.'
+        }
+      />
     );
   }
 
@@ -195,8 +206,8 @@ function TextAnswers({ poll, question }) {
 
   return (
     <Card>
-      <h2 className="mb-1 text-sm font-semibold">{question.prompt}</h2>
-      <p className="mb-3 text-xs" style={{ color: 'var(--muted)' }}>
+      <h2 className="mb-1 text-base font-semibold">{question.prompt}</h2>
+      <p className="mb-4 text-xs" style={{ color: 'var(--muted)' }}>
         Free-text answers, most recent first
       </p>
 
@@ -211,12 +222,12 @@ function TextAnswers({ poll, question }) {
           {data.answers.map((a, i) => (
             <li
               key={i}
-              className="rounded-lg px-3 py-2 text-sm"
-              style={{ background: 'var(--plane)' }}
+              className="rounded-lg px-3.5 py-3 text-sm"
+              style={{ background: 'var(--plane)', border: '1px solid var(--line)' }}
             >
               <p>{a.value_text}</p>
-              <p className="mt-1 text-xs" style={{ color: 'var(--muted)' }}>
-                {formatDate(a.submitted_at)}
+              <p className="mt-1.5 text-xs" style={{ color: 'var(--muted)' }}>
+                <time>{formatDate(a.submitted_at)}</time>
               </p>
             </li>
           ))}
