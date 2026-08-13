@@ -1,11 +1,12 @@
 import { useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { pollsApi, responsesApi } from '../lib/api.js';
+import { apiFeatures, pollsApi, responsesApi } from '../lib/api.js';
 import { useAsync, useAction, useDocumentTitle } from '../lib/hooks.js';
 import { useLiveTallies } from '../lib/useLiveTallies.js';
 import { formatCount, relativeTime, CHOICE_TYPES } from '../lib/format.js';
 import { Button, Card, Field, Input, Textarea, ErrorNote, Spinner } from '../components/ui.jsx';
 import { ResultBars } from '../components/charts/ResultBars.jsx';
+import { Turnstile, isTurnstileConfigured } from '../components/Turnstile.jsx';
 
 /**
  * Public respondent page.
@@ -20,6 +21,16 @@ export function Respond() {
   const [name, setName] = useState('');
   const [inviteCode, setInviteCode] = useState('');
   const [submitted, setSubmitted] = useState(null);
+  const [turnstileToken, setTurnstileToken] = useState(null);
+  const [turnstileReset, setTurnstileReset] = useState(0);
+  const [turnstileError, setTurnstileError] = useState(null);
+
+  // The API rejects every response once TURNSTILE_SECRET_KEY is set and no
+  // token arrives, so whether to challenge is the API's call, not a build-time
+  // constant here.
+  const { data: features } = useAsync(apiFeatures, []);
+  const challengeRequired = features?.turnstile === true;
+  const challengeUsable = challengeRequired && isTurnstileConfigured();
 
   const { data, loading, error } = useAsync(() => pollsApi.getBySlug(slug), [slug]);
   const poll = data?.poll;
@@ -40,6 +51,7 @@ export function Respond() {
       })),
       ...(poll.identityMode === 'name_required' ? { respondentName: name } : {}),
       ...(inviteCode ? { inviteCode } : {}),
+      ...(turnstileToken ? { turnstileToken } : {}),
     };
     const result = await responsesApi.submit(slug, payload);
     setSubmitted(result);
@@ -135,7 +147,13 @@ export function Respond() {
         className="space-y-4"
         onSubmit={(e) => {
           e.preventDefault();
-          execute().catch(() => {});
+          execute().catch(() => {
+            // Whatever the failure was — a duplicate vote, a closed poll — the
+            // token is spent the moment the API verified it. Re-challenge, or
+            // the retry fails as a challenge error instead of the real reason.
+            setTurnstileToken(null);
+            setTurnstileReset((n) => n + 1);
+          });
         }}
       >
         <ErrorNote error={submitError} />
@@ -176,16 +194,47 @@ export function Respond() {
           />
         ))}
 
+        {challengeUsable && (
+          <div className="space-y-2">
+            <Turnstile
+              onToken={(token) => {
+                setTurnstileToken(token);
+                if (token) setTurnstileError(null);
+              }}
+              onError={setTurnstileError}
+              resetSignal={turnstileReset}
+            />
+            {turnstileError && (
+              <p className="text-center text-xs" style={{ color: 'var(--critical)' }} role="alert">
+                {turnstileError}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* The API will reject every submission here, and its 403 says only
+            that the challenge failed. Saying so up front beats letting the
+            respondent answer the whole poll first. */}
+        {challengeRequired && !isTurnstileConfigured() && (
+          <Card className="text-center text-xs" style={{ color: 'var(--critical)' }} role="alert">
+            This poll requires a verification check that is not set up on this
+            site. Responses cannot be submitted until VITE_TURNSTILE_SITE_KEY is
+            configured.
+          </Card>
+        )}
+
         <Button
           type="submit"
           size="lg"
           loading={pending}
-          disabled={missing.length > 0}
+          disabled={missing.length > 0 || (challengeRequired && !turnstileToken)}
           className="w-full"
         >
           {missing.length > 0
             ? `${missing.length} question${missing.length > 1 ? 's' : ''} left`
-            : 'Submit'}
+            : challengeRequired && !turnstileToken
+              ? 'Complete the verification check'
+              : 'Submit'}
         </Button>
 
         <p className="text-center text-xs" style={{ color: 'var(--muted)' }}>
