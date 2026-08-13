@@ -29,10 +29,13 @@ export function QuestionEditor({ question, index, total, onChange, onRemove, onM
 
   return (
     <Card className="space-y-4">
-      <div className="flex items-start gap-3">
+      <div className="flex items-start gap-4">
+        {/* A numbered chip rather than a loose grey digit: in a long survey
+            this column is how you keep your place while scrolling. */}
         <span
-          className="mt-2 text-xs tabular-nums"
-          style={{ color: 'var(--muted)' }}
+          className="mt-7 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-medium"
+          data-numeric
+          style={{ background: 'var(--brand-wash)', color: 'var(--brand-ink)' }}
           aria-hidden
         >
           {index + 1}

@@ -33,7 +33,7 @@ export function ResultBars({ options, tallies, total, leaderHighlight = true }) 
                     alt=""
                     loading="lazy"
                     className="h-8 w-8 shrink-0 rounded object-cover"
-                    style={{ border: '1px solid var(--ring)' }}
+                    style={{ border: '1px solid var(--line)' }}
                   />
                 )}
                 <span className="truncate">{option.label ?? 'Untitled option'}</span>

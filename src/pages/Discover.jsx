@@ -2,7 +2,34 @@ import { Link } from 'react-router-dom';
 import { pollsApi } from '../lib/api.js';
 import { useAsync, useDocumentTitle } from '../lib/hooks.js';
 import { formatCount, formatDate } from '../lib/format.js';
-import { Card, EmptyState, ErrorNote, PageHeader, Spinner, Button } from '../components/ui.jsx';
+import {
+  Card,
+  EmptyState,
+  ErrorNote,
+  PageHeader,
+  Skeleton,
+  Button,
+} from '../components/ui.jsx';
+
+/*
+ * Skeletons rather than a centred spinner: they hold the shape of the grid
+ * that is about to appear, so the page does not reflow when the data lands.
+ */
+function LoadingGrid() {
+  return (
+    <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-hidden>
+      {Array.from({ length: 6 }, (_, i) => (
+        <li key={i}>
+          <Card className="h-full">
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="mt-3 h-4 w-1/2" />
+            <Skeleton className="mt-5 h-3 w-2/5" />
+          </Card>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 export function Discover() {
   useDocumentTitle('Discover');
@@ -11,17 +38,17 @@ export function Discover() {
 
   return (
     <>
-      <PageHeader
-        title="Discover"
-        description="Public polls anyone can respond to."
-      />
+      <PageHeader title="Discover" description="Public polls anyone can respond to." />
 
-      <ErrorNote error={error} className="mb-4" />
+      <ErrorNote error={error} className="mb-5" />
 
       {loading ? (
-        <div className="flex justify-center py-16">
-          <Spinner size={28} label="Loading public polls" />
-        </div>
+        <>
+          <span className="sr-only" role="status">
+            Loading public polls
+          </span>
+          <LoadingGrid />
+        </>
       ) : polls.length === 0 ? (
         <EmptyState
           title="Nothing public yet"
@@ -29,14 +56,21 @@ export function Discover() {
           action={<Button to="/new">Create one</Button>}
         />
       ) : (
-        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {polls.map((poll) => (
             <li key={poll.id}>
-              <Link to={`/p/${poll.slug}`} className="block h-full">
-                <Card className="h-full transition hover:brightness-[0.98]">
+              {/* The whole card is the target — a small title-only link would
+                  be a needlessly precise thing to hit on a phone. */}
+              <Link to={`/p/${poll.slug}`} className="block h-full rounded-lg">
+                <Card interactive className="flex h-full flex-col">
                   <h2 className="font-medium">{poll.title}</h2>
-                  <p className="mt-2 text-xs" style={{ color: 'var(--muted)' }}>
-                    {formatCount(poll.responseCount)} responses · {formatDate(poll.createdAt)}
+                  <p
+                    className="mt-auto pt-4 text-xs"
+                    style={{ color: 'var(--muted)' }}
+                  >
+                    <span data-numeric>{formatCount(poll.responseCount)}</span>{' '}
+                    {poll.responseCount === 1 ? 'response' : 'responses'} ·{' '}
+                    <time>{formatDate(poll.createdAt)}</time>
                   </p>
                 </Card>
               </Link>
