@@ -57,6 +57,14 @@ export async function registerWebPush() {
       { scope: '/' },
     );
 
+    // register() resolves as soon as the registration exists — the worker
+    // itself may still be installing. PushManager.subscribe(), which getToken
+    // calls into, requires an *active* worker and throws "no active service
+    // worker" otherwise. That makes this a first-visit-only failure: by the
+    // second attempt the worker has activated on its own, which is exactly
+    // what makes it easy to miss in testing.
+    await waitUntilActive(registration);
+
     const app = initializeApp(CONFIG);
     const token = await getToken(getMessaging(app), {
       vapidKey: VAPID_KEY,
@@ -71,6 +79,46 @@ export async function registerWebPush() {
   } catch (err) {
     return { error: err.message ?? 'Push registration failed' };
   }
+}
+
+/**
+ * Resolve once the registration has an active worker.
+ *
+ * Prefers the registration we just created over navigator.serviceWorker.ready,
+ * which resolves for whichever worker controls the scope and would mask a
+ * failure to activate this one. The timeout keeps a worker stuck in `installing`
+ * — a syntax error in the script, or an importScripts() that cannot be fetched —
+ * from hanging the button forever with a spinner and no explanation.
+ */
+function waitUntilActive(registration, timeoutMs = 10_000) {
+  if (registration.active) return Promise.resolve();
+
+  return new Promise((resolve, reject) => {
+    const worker = registration.installing ?? registration.waiting;
+    if (!worker) {
+      reject(new Error('Service worker registered but never started installing'));
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      worker.removeEventListener('statechange', onChange);
+      reject(new Error('Service worker did not activate in time'));
+    }, timeoutMs);
+
+    function onChange() {
+      if (worker.state === 'activated') {
+        clearTimeout(timer);
+        worker.removeEventListener('statechange', onChange);
+        resolve();
+      } else if (worker.state === 'redundant') {
+        clearTimeout(timer);
+        worker.removeEventListener('statechange', onChange);
+        reject(new Error('Service worker failed to install'));
+      }
+    }
+
+    worker.addEventListener('statechange', onChange);
+  });
 }
 
 /** Revoke on sign-out so a shared computer stops receiving the last user's polls. */
