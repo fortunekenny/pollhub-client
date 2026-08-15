@@ -19,6 +19,7 @@ import {
 import { SharePanel } from '../components/SharePanel.jsx';
 import { ResultBars } from '../components/charts/ResultBars.jsx';
 import { ShareDonut } from '../components/charts/ShareDonut.jsx';
+import { RankingResults } from '../components/charts/RankingResults.jsx';
 import { TrendChart } from '../components/charts/TrendChart.jsx';
 import { ChartPanel, StatTile } from '../components/charts/ChartPanel.jsx';
 
@@ -177,14 +178,22 @@ function ResultsTab({ poll, questions, tallies }) {
             subtitle={`${formatCount(poll.responseCount)} responses`}
             rows={rows}
           >
-            <div className="grid gap-8 lg:grid-cols-[1fr_auto]">
-              <ResultBars options={question.options} tallies={tallies} />
-              {/* Donut earns its place only when the split is the story —
-                  with two options the bars already say it. */}
-              {question.options.length > 2 && (
-                <ShareDonut options={question.options} tallies={tallies} />
-              )}
-            </div>
+            {question.type === 'ranking' ? (
+              /* No donut and no live tallies here: every respondent ranks
+                 every option, so the counts are equal by construction and a
+                 share-of-total reading would be nonsense. The standings come
+                 from the positions instead. */
+              <RankingResults options={question.options} />
+            ) : (
+              <div className="grid gap-8 lg:grid-cols-[1fr_auto]">
+                <ResultBars options={question.options} tallies={tallies} />
+                {/* Donut earns its place only when the split is the story —
+                    with two options the bars already say it. */}
+                {question.options.length > 2 && (
+                  <ShareDonut options={question.options} tallies={tallies} />
+                )}
+              </div>
+            )}
           </ChartPanel>
         );
       })}

@@ -6,7 +6,9 @@ import { useLiveTallies } from '../lib/useLiveTallies.js';
 import { formatCount, relativeTime, CHOICE_TYPES } from '../lib/format.js';
 import { Button, Card, Field, Input, Textarea, ErrorNote, Skeleton } from '../components/ui.jsx';
 import { ResultBars } from '../components/charts/ResultBars.jsx';
+import { RankingResults } from '../components/charts/RankingResults.jsx';
 import { Turnstile, isTurnstileConfigured } from '../components/Turnstile.jsx';
+import { RankingInput } from '../components/RankingInput.jsx';
 
 /**
  * Public respondent page.
@@ -157,7 +159,11 @@ export function Respond() {
                 .map((q) => (
                   <div key={q.id}>
                     <h3 className="mb-3 text-sm font-medium">{q.prompt}</h3>
-                    <ResultBars options={q.options} tallies={tallies} />
+                    {q.type === 'ranking' ? (
+                      <RankingResults options={q.options} />
+                    ) : (
+                      <ResultBars options={q.options} tallies={tallies} />
+                    )}
                   </div>
                 ))}
             </div>
@@ -353,7 +359,19 @@ function QuestionCard({ question, value, onChange }) {
           )}
         </legend>
 
-        {CHOICE_TYPES.includes(question.type) && (
+        {/* Ranking is in CHOICE_TYPES because it stores option ids, but it is
+            an ordering rather than a selection — so it gets its own control
+            and must be checked before the generic choice branch. */}
+        {question.type === 'ranking' && (
+          <RankingInput
+            options={question.options}
+            value={selected}
+            onChange={onChange}
+            name={`q-${question.id}`}
+          />
+        )}
+
+        {question.type !== 'ranking' && CHOICE_TYPES.includes(question.type) && (
           <div className={question.options.some((o) => o.imageUrl) ? 'grid gap-2 sm:grid-cols-2' : 'space-y-2'}>
             {question.options.map((option) => {
               const isSelected = selected.includes(option.id);
@@ -455,10 +473,23 @@ function ThankYou({ poll, questions, tallies, result }) {
             .map((q) => (
               <div key={q.id}>
                 <h3 className="mb-3 text-sm font-medium">{q.prompt}</h3>
-                <ResultBars
-                  options={q.options}
-                  tallies={{ ...tallies, ...(result.tallies ?? {}) }}
-                />
+                {q.type === 'ranking' ? (
+                  /* Patched with the figures returned by the submit, so the
+                     confirmation reflects the ranking just cast rather than
+                     the standings as they were when the page loaded. */
+                  <RankingResults
+                    options={q.options.map((o) => ({
+                      ...o,
+                      count: result.tallies?.[o.id] ?? o.count,
+                      rankSum: result.rankSums?.[o.id] ?? o.rankSum,
+                    }))}
+                  />
+                ) : (
+                  <ResultBars
+                    options={q.options}
+                    tallies={{ ...tallies, ...(result.tallies ?? {}) }}
+                  />
+                )}
               </div>
             ))}
           <p className="text-xs" style={{ color: 'var(--muted)' }}>
