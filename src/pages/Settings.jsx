@@ -3,7 +3,7 @@ import { notificationsApi } from '../lib/api.js';
 import { useAsync, useDocumentTitle } from '../lib/hooks.js';
 import { useAuth } from '../lib/auth.jsx';
 import { Card, Toggle, PageHeader, Spinner, ErrorNote, Button, Badge } from '../components/ui.jsx';
-import { registerWebPush, pushSupport } from '../lib/push.js';
+import { registerWebPush, pushSupport, isPushRegistered } from '../lib/push.js';
 
 const EVENTS = [
   { key: 'poll_closing', label: 'Poll closing soon' },
@@ -111,15 +111,37 @@ function EventPrefs({ event, value, onSaved }) {
  * Permission can only be requested from a user gesture, and once denied it
  * cannot be re-prompted from the page at all — so the denied state gets a real
  * explanation rather than a button that silently does nothing.
+ *
+ * What this card reports is whether a token is REGISTERED, not whether
+ * permission is granted. They come apart the moment anything downstream of the
+ * prompt fails — an expired session when the token is POSTed is enough — and
+ * permission is permanent once given. Keying the UI on permission alone showed
+ * a green "Enabled" badge to a browser that would never receive anything, and
+ * hid the only button that could have fixed it.
  */
 function PushCard() {
   const [permission, setPermission] = useState(pushSupport().permission);
+  const [registered, setRegistered] = useState(isPushRegistered);
   const [status, setStatus] = useState(null);
+  const [busy, setBusy] = useState(false);
   const support = pushSupport();
 
   useEffect(() => {
     setPermission(support.permission);
   }, [support.permission]);
+
+  async function enable() {
+    setBusy(true);
+    setStatus(null);
+    try {
+      const result = await registerWebPush();
+      setPermission(Notification.permission);
+      setRegistered(isPushRegistered());
+      setStatus(result);
+    } finally {
+      setBusy(false);
+    }
+  }
 
   if (!support.supported) {
     return (
@@ -153,7 +175,7 @@ function PushCard() {
             Get told when a poll closes, without keeping the tab open.
           </p>
         </div>
-        {permission === 'granted' && <Badge tone="good">Enabled</Badge>}
+        {registered && <Badge tone="good">Enabled</Badge>}
       </div>
 
       {permission === 'denied' && (
@@ -163,17 +185,19 @@ function PushCard() {
         </p>
       )}
 
-      {permission === 'default' && (
-        <Button
-          className="mt-3"
-          size="sm"
-          onClick={async () => {
-            const result = await registerWebPush();
-            setPermission(Notification.permission);
-            setStatus(result);
-          }}
-        >
-          Enable notifications
+      {/* Granted but unregistered is a real state, not a contradiction: the
+          browser said yes and something after that did not finish. Name it,
+          because otherwise it looks identical to working. */}
+      {permission === 'granted' && !registered && (
+        <p className="mt-3 text-sm" style={{ color: 'var(--ink-2)' }}>
+          This browser has permission, but it isn't receiving notifications yet — the last attempt
+          didn't finish. Try again to complete it.
+        </p>
+      )}
+
+      {permission !== 'denied' && !registered && (
+        <Button className="mt-3" size="sm" loading={busy} onClick={enable}>
+          {permission === 'granted' ? 'Finish enabling' : 'Enable notifications'}
         </Button>
       )}
 

@@ -10,6 +10,8 @@ const CONFIG = {
 
 const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY;
 
+const TOKEN_KEY = 'ph_push_token';
+
 export function pushSupport() {
   const supported =
     typeof window !== 'undefined' &&
@@ -22,6 +24,19 @@ export function pushSupport() {
     configured: Boolean(CONFIG.projectId && VAPID_KEY),
     permission: supported ? Notification.permission : 'unsupported',
   };
+}
+
+/**
+ * Whether this browser actually completed registration.
+ *
+ * Deliberately not the same question as `permission === 'granted'`. Permission
+ * is step one of three and is permanent once given; the token only exists once
+ * the API has accepted it. Treating the two as equivalent strands anyone whose
+ * registration failed after the prompt — permission granted, nothing
+ * registered, and no way to try again.
+ */
+export function isPushRegistered() {
+  return typeof window !== 'undefined' && Boolean(localStorage.getItem(TOKEN_KEY));
 }
 
 /**
@@ -74,7 +89,7 @@ export async function registerWebPush() {
     if (!token) return { error: 'Could not obtain a push token' };
 
     await notificationsApi.registerToken({ token, provider: 'fcm_web', platform: 'web' });
-    localStorage.setItem('ph_push_token', token);
+    localStorage.setItem(TOKEN_KEY, token);
     return { token };
   } catch (err) {
     return { error: err.message ?? 'Push registration failed' };
@@ -123,11 +138,11 @@ function waitUntilActive(registration, timeoutMs = 10_000) {
 
 /** Revoke on sign-out so a shared computer stops receiving the last user's polls. */
 export async function unregisterWebPush() {
-  const token = localStorage.getItem('ph_push_token');
+  const token = localStorage.getItem(TOKEN_KEY);
   if (!token) return;
   try {
     await notificationsApi.revokeToken(token);
   } finally {
-    localStorage.removeItem('ph_push_token');
+    localStorage.removeItem(TOKEN_KEY);
   }
 }
