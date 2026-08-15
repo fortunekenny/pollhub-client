@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { pollsApi, analyticsApi, invitesApi } from '../lib/api.js';
 import { useAsync, useAction, useDocumentTitle } from '../lib/hooks.js';
 import { useLiveTallies } from '../lib/useLiveTallies.js';
@@ -23,13 +23,31 @@ import { RankingResults } from '../components/charts/RankingResults.jsx';
 import { TrendChart } from '../components/charts/TrendChart.jsx';
 import { ChartPanel, StatTile } from '../components/charts/ChartPanel.jsx';
 
+const BASE_TABS = ['results', 'share', 'analytics'];
+
 export function PollDetail() {
   const { id } = useParams();
-  const [tab, setTab] = useState('results');
+  // null until the creator picks one, so the default can depend on the poll —
+  // which has not loaded yet on first render.
+  const [tab, setTab] = useState(null);
 
   const { data, loading, error, reload } = useAsync(() => pollsApi.get(id), [id]);
   const poll = data?.poll;
   const questions = data?.questions ?? [];
+
+  // Invite codes only mean anything when they are what admits a respondent.
+  // For every other dedup mode the tab offers a control with no effect.
+  const usesInvites = poll?.dedupMode === 'invite_code';
+  const tabs = usesInvites ? [...BASE_TABS, 'invites'] : BASE_TABS;
+
+  // Open on invites straight after setup: an invite-only poll cannot take a
+  // single response until codes exist, so issuing them is the next thing to
+  // do — not something to go hunting for behind a tab.
+  const defaultTab = usesInvites && poll?.responseCount === 0 ? 'invites' : 'results';
+
+  // Falling back when `tab` is not in `tabs` covers both the unpicked initial
+  // state and a stale 'invites' left selected if dedup mode ever changes.
+  const activeTab = tabs.includes(tab) ? tab : defaultTab;
 
   useDocumentTitle(poll?.title);
 
@@ -123,26 +141,26 @@ export function PollDetail() {
         aria-label="Poll sections"
         style={{ borderBottom: '1px solid var(--line)' }}
       >
-        {['results', 'share', 'analytics', 'invites'].map((t) => (
+        {tabs.map((t) => (
           <button
             key={t}
             type="button"
             onClick={() => setTab(t)}
-            aria-current={tab === t ? 'page' : undefined}
+            aria-current={activeTab === t ? 'page' : undefined}
             className="tab"
-            data-active={tab === t || undefined}
+            data-active={activeTab === t || undefined}
           >
             {t}
           </button>
         ))}
       </nav>
 
-      {tab === 'results' && (
+      {activeTab === 'results' && (
         <ResultsTab poll={poll} questions={questions} tallies={tallies} />
       )}
-      {tab === 'share' && <SharePanel poll={poll} />}
-      {tab === 'analytics' && <AnalyticsTab poll={poll} />}
-      {tab === 'invites' && <InvitesTab poll={poll} />}
+      {activeTab === 'share' && <SharePanel poll={poll} />}
+      {activeTab === 'analytics' && <AnalyticsTab poll={poll} />}
+      {activeTab === 'invites' && <InvitesTab poll={poll} />}
     </>
   );
 }
@@ -393,16 +411,6 @@ function InvitesTab({ poll }) {
         )}
       </Card>
 
-      {poll.dedupMode !== 'invite_code' && (
-        <p className="text-xs" style={{ color: 'var(--muted)' }}>
-          This poll's duplicate protection is set to "{DEDUP_LABELS[poll.dedupMode]}", so invite
-          codes are not currently required to respond.{' '}
-          <Link to={`/polls/${poll.id}`} style={{ color: 'var(--brand-ink)' }}>
-            Change it in settings
-          </Link>{' '}
-          — note that it locks after the first response.
-        </p>
-      )}
     </div>
   );
 }
