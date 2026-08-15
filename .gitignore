@@ -6,3 +6,11 @@ dist/
 *.log
 .vite/
 .DS_Store
+
+# Design reference books kept in the working copy. Named individually rather
+# than *.pdf so a PDF the app genuinely needs is not silently ignored. The
+# largest is 140 MB — well past GitHub's 100 MB hard limit, so committing one
+# by accident fails the push only after it is already in history.
+Design Practical UI.pdf
+User Interface Design for Programmers.pdf
+UXPeak_ The UI-UX Playbook_ Learn How To Design Beautiful.pdf
