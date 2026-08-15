@@ -35,14 +35,54 @@ export function setUnauthorizedHandler(fn) {
   onUnauthorized = fn;
 }
 
-async function request(method, path, { body, signal, raw } = {}) {
+/**
+ * Endpoints a 401 must not trigger a refresh for.
+ *
+ * Sign-in routes because a 401 there means wrong credentials, and retrying
+ * with the same ones is pointless noise. /auth/refresh itself because that is
+ * how the recursion ends.
+ */
+const NO_REFRESH = ['/auth/login', '/auth/signup', '/auth/refresh'];
+
+let refreshing = null;
+
+/**
+ * Trade the refresh cookie for a new access token.
+ *
+ * Single-flight: a page that fires five requests on mount gets five 401s at
+ * once, and five parallel rotations would revoke each other — the refresh
+ * token rotates on use, so the second caller would present one the first has
+ * already spent, which the API reads as reuse and responds to by killing every
+ * session the user has.
+ */
+function refreshSession() {
+  refreshing ??= (async () => {
+    try {
+      const res = await fetch(`${BASE}/auth/refresh`, { method: 'POST', credentials: 'include' });
+      if (!res.ok) return false;
+      const data = safeParse(await res.text());
+      if (!data?.token) return false;
+      setToken(data.token);
+      return true;
+    } catch {
+      return false;
+    }
+  })().finally(() => {
+    refreshing = null;
+  });
+
+  return refreshing;
+}
+
+async function request(method, path, { body, signal, raw } = {}, allowRefresh = true) {
   const token = getToken();
 
   const res = await fetch(`${BASE}${path}`, {
     method,
     signal,
     // Cookies matter beyond auth: the signed device-id cookie is what the
-    // default dedup mode identifies a repeat voter by.
+    // default dedup mode identifies a repeat voter by, and the refresh cookie
+    // is what keeps a session alive past the access token's fifteen minutes.
     credentials: 'include',
     headers: {
       ...(body ? { 'content-type': 'application/json' } : {}),
@@ -50,6 +90,15 @@ async function request(method, path, { body, signal, raw } = {}) {
     },
     ...(body ? { body: JSON.stringify(body) } : {}),
   });
+
+  // An expired access token is the common case, not an error: refresh once and
+  // replay the request, so the caller never sees it. Only ever one retry —
+  // `allowRefresh` is false on the way back through.
+  if (res.status === 401 && allowRefresh && !NO_REFRESH.includes(path.split('?')[0])) {
+    if (await refreshSession()) {
+      return request(method, path, { body, signal, raw }, false);
+    }
+  }
 
   if (res.status === 204) return null;
   if (raw) {
@@ -62,6 +111,8 @@ async function request(method, path, { body, signal, raw } = {}) {
 
   if (!res.ok) {
     const err = data?.error ?? {};
+    // Reached only once refreshing has been tried and failed, so this now
+    // means "the session is genuinely over" rather than "the token aged out".
     if (res.status === 401 && onUnauthorized) onUnauthorized();
     throw new ApiError(
       res.status,
@@ -109,6 +160,7 @@ export const authApi = {
   signup: (body) => api.post('/auth/signup', body),
   login: (body) => api.post('/auth/login', body),
   logout: () => api.post('/auth/logout'),
+  refresh: () => api.post('/auth/refresh'),
   me: () => api.get('/auth/me'),
   verifyEmail: (token) => api.post('/auth/verify-email', { token }),
   requestReset: (email) => api.post('/auth/password/request-reset', { email }),
