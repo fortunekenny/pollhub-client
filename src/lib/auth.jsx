@@ -63,6 +63,25 @@ export function AuthProvider({ children }) {
         return me;
       },
 
+      /**
+       * Adopt a token minted elsewhere — the OAuth callback, which hands one
+       * back through the URL fragment rather than a response body.
+       *
+       * Verifies it with /auth/me instead of trusting it: the token arrived
+       * through the address bar, where anything could have put it.
+       */
+      async adoptSession(token) {
+        setToken(token);
+        try {
+          const { user: me } = await authApi.me();
+          setUser(me);
+          return me;
+        } catch (err) {
+          clear();
+          throw err;
+        }
+      },
+
       async logout() {
         try {
           await authApi.logout();

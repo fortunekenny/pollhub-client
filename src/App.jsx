@@ -6,6 +6,7 @@ import { Landing, NotFound } from './pages/Landing.jsx';
 import { Login } from './pages/Login.jsx';
 import { Signup } from './pages/Signup.jsx';
 import { ForgotPassword, ResetPassword, VerifyEmail } from './pages/PasswordPages.jsx';
+import { OAuthCallback } from './pages/OAuthCallback.jsx';
 import { Dashboard } from './pages/Dashboard.jsx';
 import { Builder } from './pages/Builder.jsx';
 import { PollDetail } from './pages/PollDetail.jsx';
@@ -29,6 +30,8 @@ export function App() {
         <Route path="forgot-password" element={<ForgotPassword />} />
         <Route path="reset-password" element={<ResetPassword />} />
         <Route path="verify-email" element={<VerifyEmail />} />
+        {/* Where the API sends the browser after Google consent. */}
+        <Route path="auth/callback" element={<OAuthCallback />} />
         <Route path="discover" element={<Discover />} />
 
         <Route
