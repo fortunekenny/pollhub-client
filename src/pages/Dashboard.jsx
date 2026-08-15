@@ -121,11 +121,10 @@ export function Dashboard() {
 
   return (
     <>
-      <PageHeader
-        title="My polls"
-        description="Everything you've created, live or draft."
-        actions={<Button to="/new">New poll</Button>}
-      />
+      {/* No "New poll" action here: the header bar carries one on every
+          authenticated page, and a second copy a few inches below it competes
+          with the primary action of this page, which is opening a poll. */}
+      <PageHeader title="My polls" description="Everything you've created, live or draft." />
 
       <div className="mb-6">
         <StatusFilter value={status} onChange={setStatus} />
