@@ -61,7 +61,13 @@ export function PollDetail() {
   useDocumentTitle(poll?.title);
 
   // Live only matters while the poll is open; a closed poll's numbers are final.
-  const { tallies, connection } = useLiveTallies(id, { enabled: poll?.status === 'published' });
+  const { tallies, responseCount, connection } = useLiveTallies(id, {
+    enabled: poll?.status === 'published',
+  });
+
+  // The socket is the fresher source while connected; the fetched poll is the
+  // only one for a closed poll, where no socket is open at all.
+  const livePoll = poll && responseCount !== null ? { ...poll, responseCount } : poll;
 
   if (loading) {
     return (
@@ -180,7 +186,7 @@ export function PollDetail() {
       </nav>
 
       {activeTab === 'results' && (
-        <ResultsTab poll={poll} questions={questions} tallies={tallies} />
+        <ResultsTab poll={livePoll} questions={questions} tallies={tallies} />
       )}
       {activeTab === 'share' && <SharePanel poll={poll} />}
       {activeTab === 'analytics' && <AnalyticsTab poll={poll} />}

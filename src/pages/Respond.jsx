@@ -44,7 +44,9 @@ export function Respond() {
 
   const showLive =
     (data?.resultsVisible || submitted) && poll?.status === 'published';
-  const { tallies } = useLiveTallies(poll?.id, { enabled: Boolean(showLive) });
+  const { tallies, responseCount: liveCount } = useLiveTallies(poll?.id, {
+    enabled: Boolean(showLive),
+  });
 
   const { execute, pending, error: submitError } = useAction(async () => {
     const payload = {
@@ -131,6 +133,7 @@ export function Respond() {
         questions={questions}
         tallies={tallies}
         result={submitted}
+        liveCount={liveCount}
       />
     );
   }
@@ -446,7 +449,10 @@ function QuestionCard({ question, value, onChange }) {
   );
 }
 
-function ThankYou({ poll, questions, tallies, result }) {
+function ThankYou({ poll, questions, tallies, result, liveCount }) {
+  // The count from the submit response is right at the instant of voting; the
+  // socket keeps it right while this screen stays open.
+  const total = liveCount ?? result.responseCount;
   return (
     <div className="space-y-6">
       <Card className="flex flex-col items-center gap-3 py-10 text-center">
@@ -464,7 +470,7 @@ function ThankYou({ poll, questions, tallies, result }) {
         </span>
         <h1 className="text-xl font-semibold">Response recorded</h1>
         <p className="text-sm" style={{ color: 'var(--ink-2)' }}>
-          <span data-numeric>{formatCount(result.responseCount)}</span> responses so far.
+          <span data-numeric>{formatCount(total)}</span> responses so far.
         </p>
         {/* Someone who has just voted and is watching the numbers move is the
             likeliest person on the site to want to know how long is left. */}

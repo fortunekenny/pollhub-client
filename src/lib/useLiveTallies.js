@@ -14,6 +14,9 @@ const WS_URL =
  */
 export function useLiveTallies(pollId, { enabled = true } = {}) {
   const [tallies, setTallies] = useState({});
+  // null until the socket says otherwise, so a caller can tell "no live value
+  // yet" from "live value of zero" and fall back to its own fetched count.
+  const [responseCount, setResponseCount] = useState(null);
   const [pollStatus, setPollStatus] = useState(null);
   const [connection, setConnection] = useState('idle');
   const socketRef = useRef(null);
@@ -44,11 +47,19 @@ export function useLiveTallies(pollId, { enabled = true } = {}) {
           return;
         }
 
-        if (msg.type === 'snapshot') setTallies(msg.tallies ?? {});
+        if (msg.type === 'snapshot') {
+          setTallies(msg.tallies ?? {});
+          if (typeof msg.responseCount === 'number') setResponseCount(msg.responseCount);
+        }
         // Deltas carry absolute counts per changed option, so merging is safe
         // even if a frame was missed while the tab was backgrounded.
-        else if (msg.type === 'tally') setTallies((prev) => ({ ...prev, ...msg.tallies }));
-        else if (msg.type === 'status') setPollStatus(msg.status);
+        else if (msg.type === 'tally') {
+          setTallies((prev) => ({ ...prev, ...msg.tallies }));
+          // Monotonic guard: a delayed frame must not walk the total backwards.
+          if (typeof msg.responseCount === 'number') {
+            setResponseCount((prev) => (prev === null ? msg.responseCount : Math.max(prev, msg.responseCount)));
+          }
+        } else if (msg.type === 'status') setPollStatus(msg.status);
         else if (msg.type === 'error') setConnection('rejected');
       });
 
@@ -75,5 +86,5 @@ export function useLiveTallies(pollId, { enabled = true } = {}) {
     };
   }, [pollId, enabled]);
 
-  return { tallies, pollStatus, connection };
+  return { tallies, responseCount, pollStatus, connection };
 }
