@@ -9,7 +9,7 @@ import { ResultBars } from '../components/charts/ResultBars.jsx';
 import { RankingResults } from '../components/charts/RankingResults.jsx';
 import { Turnstile, isTurnstileConfigured } from '../components/Turnstile.jsx';
 import { RankingInput } from '../components/RankingInput.jsx';
-import { Countdown } from '../components/Countdown.jsx';
+import { PollTimer } from '../components/PollTimer.jsx';
 
 /**
  * Public respondent page.
@@ -317,20 +317,23 @@ function PollShell({ poll, children }) {
             {poll.description}
           </p>
         )}
-        {poll.closesAt && (
-          <p
-            className="mt-3 inline-flex items-center gap-1.5 text-xs"
-            style={{ color: 'var(--muted)' }}
-          >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
-              <circle cx="12" cy="12" r="9" />
-              <path d="M12 7v5.2l3 1.8" />
-            </svg>
-            {/* Ticks, because a respondent deciding whether to answer now is
-                exactly who needs to know it shuts in four minutes. */}
-            <Countdown closesAt={poll.closesAt} />
-          </p>
-        )}
+        <p
+          className="mt-3 inline-flex items-center gap-1.5 text-xs"
+          style={{ color: 'var(--muted)' }}
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 7v5.2l3 1.8" />
+          </svg>
+          {/* Ticks, because a respondent deciding whether to answer now is
+              exactly who needs to know it shuts in four minutes — or that it
+              has been open a fortnight and there is no rush. */}
+          <PollTimer
+            closesAt={poll.closesAt}
+            since={poll.publishedAt ?? poll.opensAt ?? poll.createdAt}
+            status={poll.status}
+          />
+        </p>
       </div>
       {children}
     </div>
@@ -474,13 +477,13 @@ function ThankYou({ poll, questions, tallies, result, liveCount }) {
         </p>
         {/* Someone who has just voted and is watching the numbers move is the
             likeliest person on the site to want to know how long is left. */}
-        {poll.closesAt && (
-          <Countdown
-            closesAt={poll.closesAt}
-            className="text-xs font-medium"
-            style={{ color: 'var(--brand-ink)' }}
-          />
-        )}
+        <PollTimer
+          closesAt={poll.closesAt}
+          since={poll.publishedAt ?? poll.opensAt ?? poll.createdAt}
+          status={poll.status}
+          className="text-xs font-medium"
+          style={{ color: 'var(--brand-ink)' }}
+        />
       </Card>
 
       {result.resultsVisible ? (

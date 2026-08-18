@@ -18,7 +18,7 @@ import {
   Input,
 } from '../components/ui.jsx';
 import { SharePanel } from '../components/SharePanel.jsx';
-import { Countdown } from '../components/Countdown.jsx';
+import { PollTimer } from '../components/PollTimer.jsx';
 import { ResultBars } from '../components/charts/ResultBars.jsx';
 import { ShareDonut } from '../components/charts/ShareDonut.jsx';
 import { RankingResults } from '../components/charts/RankingResults.jsx';
@@ -137,9 +137,11 @@ export function PollDetail() {
             Repeats {poll.repeatInterval} · round {poll.round}
           </Badge>
         )}
-        {poll.closesAt && poll.status === 'published' && (
-          <Countdown
+        {poll.status === 'published' && (
+          <PollTimer
             closesAt={poll.closesAt}
+            since={poll.publishedAt ?? poll.opensAt ?? poll.createdAt}
+            status={poll.status}
             className="text-xs font-medium"
             style={{ color: 'var(--brand-ink)' }}
             // The scheduler closes it within the minute; refetch then so the

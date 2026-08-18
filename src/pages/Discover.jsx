@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { pollsApi } from '../lib/api.js';
 import { useAsync, useDocumentTitle } from '../lib/hooks.js';
 import { formatCount, formatDate } from '../lib/format.js';
-import { Countdown } from '../components/Countdown.jsx';
+import { PollTimer } from '../components/PollTimer.jsx';
 import {
   Card,
   EmptyState,
@@ -73,15 +73,15 @@ export function Discover() {
                     {poll.responseCount === 1 ? 'response' : 'responses'} ·{' '}
                     <time>{formatDate(poll.createdAt)}</time>
                   </p>
-                  {/* Only polls with a deadline get one. Most have none, and an
-                      empty line reads better than "no closing time". */}
-                  {poll.closesAt && (
-                    <Countdown
-                      closesAt={poll.closesAt}
-                      className="mt-1 text-xs font-medium"
-                      style={{ color: 'var(--brand-ink)' }}
-                    />
-                  )}
+                  {/* Every listed poll gets a clock: a deadline counts down,
+                      and one without counts up from when it opened. */}
+                  <PollTimer
+                    closesAt={poll.closesAt}
+                    since={poll.publishedAt ?? poll.opensAt ?? poll.createdAt}
+                    status={poll.status}
+                    className="mt-1 text-xs font-medium"
+                    style={{ color: 'var(--brand-ink)' }}
+                  />
                 </Card>
               </Link>
             </li>
