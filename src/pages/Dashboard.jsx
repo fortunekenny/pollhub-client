@@ -98,26 +98,13 @@ function LoadingGrid() {
 export function Dashboard() {
   useDocumentTitle('My polls');
   const [status, setStatus] = useState('');
-  // Which row is mid-duplicate, so the button that was pressed is the one that
-  // shows the spinner rather than the whole grid going busy.
-  const [duplicating, setDuplicating] = useState(null);
 
-  const { data, loading, error, reload } = useAsync(
+  const { data, loading, error } = useAsync(
     () => pollsApi.list(status ? { status } : {}),
     [status],
   );
 
   const polls = data?.polls ?? [];
-
-  async function duplicate(id) {
-    setDuplicating(id);
-    try {
-      await pollsApi.duplicate(id);
-      await reload();
-    } finally {
-      setDuplicating(null);
-    }
-  }
 
   return (
     <>
@@ -216,15 +203,6 @@ export function Dashboard() {
                       Open poll ↗
                     </Button>
                   )}
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    loading={duplicating === poll.id}
-                    disabled={duplicating !== null}
-                    onClick={() => duplicate(poll.id)}
-                  >
-                    Duplicate
-                  </Button>
                 </div>
               </Card>
             </li>

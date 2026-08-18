@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '../lib/auth.jsx';
 import { pollsApi, analyticsApi, invitesApi } from '../lib/api.js';
 import { useAsync, useAction, useDocumentTitle } from '../lib/hooks.js';
 import { useLiveTallies } from '../lib/useLiveTallies.js';
@@ -27,6 +28,7 @@ const BASE_TABS = ['results', 'share', 'analytics'];
 
 export function PollDetail() {
   const { id } = useParams();
+  const { user } = useAuth();
   // null until the creator picks one, so the default can depend on the poll —
   // which has not loaded yet on first render.
   const [tab, setTab] = useState(null);
@@ -166,6 +168,8 @@ export function PollDetail() {
       {activeTab === 'share' && <SharePanel poll={poll} />}
       {activeTab === 'analytics' && <AnalyticsTab poll={poll} />}
       {activeTab === 'invites' && <InvitesTab poll={poll} />}
+
+      <DeleteAction poll={poll} isAdmin={user?.role === 'admin'} />
     </>
   );
 }
@@ -215,6 +219,100 @@ function ArchiveAction({ poll, onArchived }) {
         </span>
       )}
     </div>
+  );
+}
+
+/**
+ * Permanent delete, gated on typing the poll's title.
+ *
+ * Heavier than the archive confirmation on purpose. Archiving hides your own
+ * poll; this destroys other people's submitted responses, and every question,
+ * tally and invite code with them. Typing the title is the cheapest way to
+ * make sure the click was aimed.
+ *
+ * Who may delete what is the API's decision — an owner may delete an archived
+ * poll, an admin may also delete a closed one. This only mirrors the rule so
+ * the button is not offered where it would be refused.
+ */
+function DeleteAction({ poll, isAdmin }) {
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const [typed, setTyped] = useState('');
+
+  const allowed = isAdmin
+    ? ['closed', 'archived'].includes(poll.status)
+    : poll.status === 'archived';
+
+  const { execute, pending, error } = useAction(async () => {
+    await pollsApi.remove(poll.id);
+    navigate('/dashboard', { replace: true });
+  });
+
+  if (!allowed) return null;
+
+  // Deliberately at the foot of the page rather than in the action bar: a
+  // permanent delete should not sit beside the buttons pressed routinely.
+  if (!open) {
+    return (
+      <div
+        className="mt-10 flex flex-wrap items-center justify-between gap-3 pt-5"
+        style={{ borderTop: '1px solid var(--line)' }}
+      >
+        <p className="text-xs" style={{ color: 'var(--muted)' }}>
+          Deleting removes this poll and every response to it, permanently.
+        </p>
+        <Button variant="ghost" size="sm" onClick={() => setOpen(true)}>
+          Delete poll
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <Card className="space-y-3" style={{ borderColor: 'var(--critical)' }}>
+      <div>
+        <h2 className="text-sm font-semibold">Delete this poll permanently</h2>
+        <p className="mt-1 text-sm" style={{ color: 'var(--ink-2)' }}>
+          {formatCount(poll.responseCount)} responses, every question and all invite codes go
+          with it. This cannot be undone.
+        </p>
+      </div>
+
+      <ErrorNote error={error} />
+
+      <Field label={`Type the poll title to confirm`} htmlFor="confirm-title">
+        <Input
+          id="confirm-title"
+          value={typed}
+          placeholder={poll.title}
+          autoComplete="off"
+          onChange={(e) => setTyped(e.target.value)}
+        />
+      </Field>
+
+      <div className="flex flex-wrap gap-2">
+        <Button
+          variant="danger"
+          size="sm"
+          loading={pending}
+          disabled={typed.trim() !== poll.title.trim()}
+          onClick={() => execute().catch(() => {})}
+        >
+          Delete permanently
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={pending}
+          onClick={() => {
+            setOpen(false);
+            setTyped('');
+          }}
+        >
+          Cancel
+        </Button>
+      </div>
+    </Card>
   );
 }
 

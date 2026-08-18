@@ -19,7 +19,36 @@ import {
   IDENTITY_LABELS,
   RESULTS_LABELS,
   VISIBILITY_LABELS,
+  formatDate,
 } from '../lib/format.js';
+
+/**
+ * How long a poll runs, as durations rather than dates.
+ *
+ * Hours, not days, as the unit — a day is not always 24 hours across a DST
+ * boundary, but adding hours to a timestamp is unambiguous, and the result is
+ * shown back to the creator before they publish either way.
+ */
+const DURATIONS = [
+  { key: 'none', label: 'Until I close it', hours: null },
+  { key: '1h', label: '1 hour', hours: 1 },
+  { key: '6h', label: '6 hours', hours: 6 },
+  { key: '1d', label: '1 day', hours: 24 },
+  { key: '3d', label: '3 days', hours: 72 },
+  { key: '1w', label: '1 week', hours: 168 },
+  { key: '2w', label: '2 weeks', hours: 336 },
+  { key: '1m', label: '1 month', hours: 720 },
+  { key: 'custom', label: 'Pick a date and time', hours: null },
+];
+
+/** A Date as the value a datetime-local input expects, in local time. */
+function toLocalInput(date) {
+  const pad = (n) => String(n).padStart(2, '0');
+  return (
+    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
+    `T${pad(date.getHours())}:${pad(date.getMinutes())}`
+  );
+}
 
 export function Builder() {
   useDocumentTitle('New poll');
@@ -39,6 +68,32 @@ export function Builder() {
     closesAt: '',
     questions: [emptyQuestion()],
   });
+
+  const [runsFor, setRunsFor] = useState('none');
+
+  /**
+   * Turn a chosen duration into the absolute closesAt the API stores.
+   *
+   * Counted from the opening time when one is set, so "1 week" means a week of
+   * open voting rather than a week from whenever the poll was drafted.
+   */
+  function applyDuration(key) {
+    setRunsFor(key);
+    const choice = DURATIONS.find((d) => d.key === key);
+
+    if (key === 'none') {
+      setPoll((p) => ({ ...p, closesAt: '' }));
+      return;
+    }
+    // Custom keeps whatever is already there and reveals the picker.
+    if (!choice?.hours) return;
+
+    const base = poll.opensAt ? new Date(poll.opensAt) : new Date();
+    setPoll((p) => ({
+      ...p,
+      closesAt: toLocalInput(new Date(base.getTime() + choice.hours * 3_600_000)),
+    }));
+  }
 
   const { execute, pending, error } = useAction(async (publish) => {
     const payload = {
@@ -316,20 +371,47 @@ export function Builder() {
                 onChange={(e) => set({ opensAt: e.target.value })}
               />
             </Field>
-            <Field
-              label="Closes"
-              htmlFor="closes"
-              hint="Leave blank to close manually."
-              error={fieldErrors.closesAt}
-            >
-              <Input
-                id="closes"
-                type="datetime-local"
-                value={poll.closesAt}
-                invalid={Boolean(fieldErrors.closesAt)}
-                onChange={(e) => set({ closesAt: e.target.value })}
-              />
+
+            {/* A duration rather than a date. "Closes in a week" is how people
+                describe a poll; working out what next Tuesday's date is, and
+                typing it in a picker, is not. The absolute time is still what
+                gets stored — this only computes it. */}
+            <Field label="Runs for" htmlFor="runs-for" hint="Counted from the opening time.">
+              <Select
+                id="runs-for"
+                value={runsFor}
+                onChange={(e) => applyDuration(e.target.value)}
+              >
+                {DURATIONS.map((d) => (
+                  <option key={d.key} value={d.key}>
+                    {d.label}
+                  </option>
+                ))}
+              </Select>
             </Field>
+
+            {runsFor === 'custom' && (
+              <Field
+                label="Closes"
+                htmlFor="closes"
+                hint="Exact date and time."
+                error={fieldErrors.closesAt}
+              >
+                <Input
+                  id="closes"
+                  type="datetime-local"
+                  value={poll.closesAt}
+                  invalid={Boolean(fieldErrors.closesAt)}
+                  onChange={(e) => set({ closesAt: e.target.value })}
+                />
+              </Field>
+            )}
+
+            {runsFor !== 'custom' && runsFor !== 'none' && poll.closesAt && (
+              <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                Closes {formatDate(poll.closesAt)}
+              </p>
+            )}
           </Card>
 
           <p className="text-xs" style={{ color: 'var(--muted)' }}>

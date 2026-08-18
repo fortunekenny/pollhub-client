@@ -178,7 +178,8 @@ export const pollsApi = {
   publish: (id) => api.post(`/polls/${id}/publish`),
   close: (id) => api.post(`/polls/${id}/close`),
   archive: (id) => api.post(`/polls/${id}/archive`),
-  duplicate: (id) => api.post(`/polls/${id}/duplicate`),
+  // Permanent. The API decides which statuses are allowed, by role.
+  remove: (id) => api.del(`/polls/${id}`),
   qrUrl: (id) => `${BASE}/polls/${id}/qr.svg`,
 };
 
