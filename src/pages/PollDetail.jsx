@@ -137,8 +137,12 @@ export function PollDetail() {
         )}
       </div>
 
+      {/* Wraps rather than scrolls. There are at most four short tabs, so a
+          scroll container was never going to earn its keep — and on Windows,
+          where scrollbars take real space instead of overlaying, it drew a
+          bar across the tabs whenever the row came close to the edge. */}
       <nav
-        className="mb-6 flex gap-6 overflow-x-auto"
+        className="mb-6 flex flex-wrap gap-x-6"
         aria-label="Poll sections"
         style={{ borderBottom: '1px solid var(--line)' }}
       >
