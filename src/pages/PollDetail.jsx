@@ -119,6 +119,11 @@ export function PollDetail() {
         <Badge tone={poll.status === 'published' ? 'good' : 'neutral'}>{poll.status}</Badge>
         <Badge>{poll.type === 'vote' ? 'Quick Vote' : 'Survey'}</Badge>
         <Badge>{DEDUP_LABELS[poll.dedupMode]}</Badge>
+        {poll.repeatInterval && (
+          <Badge tone="brand">
+            Repeats {poll.repeatInterval} · round {poll.round}
+          </Badge>
+        )}
         {poll.closesAt && poll.status === 'published' && (
           <span className="text-xs" style={{ color: 'var(--muted)' }}>
             Closes {relativeTime(poll.closesAt)}

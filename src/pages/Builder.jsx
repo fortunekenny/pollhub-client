@@ -66,6 +66,7 @@ export function Builder() {
     coverPublicId: null,
     opensAt: '',
     closesAt: '',
+    repeatInterval: null,
     questions: [emptyQuestion()],
   });
 
@@ -412,6 +413,32 @@ export function Builder() {
                 Closes {formatDate(poll.closesAt)}
               </p>
             )}
+
+            {/* Repeating needs an end to repeat from — the round has to finish
+                before the next one can start, so this is disabled until the
+                poll has a closing time rather than failing validation later. */}
+            <Field
+              label="Repeats"
+              htmlFor="repeat"
+              hint={
+                poll.closesAt
+                  ? 'Each round opens on the same permanent link, with no responses carried over.'
+                  : 'Give the poll a closing time first — that becomes the length of each round.'
+              }
+              error={fieldErrors.repeatInterval}
+            >
+              <Select
+                id="repeat"
+                value={poll.repeatInterval ?? ''}
+                disabled={!poll.closesAt}
+                onChange={(e) => set({ repeatInterval: e.target.value || null })}
+              >
+                <option value="">Doesn&rsquo;t repeat</option>
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+              </Select>
+            </Field>
           </Card>
 
           <p className="text-xs" style={{ color: 'var(--muted)' }}>
