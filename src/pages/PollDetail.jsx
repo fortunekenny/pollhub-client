@@ -240,8 +240,8 @@ function DeleteAction({ poll, isAdmin }) {
   const [typed, setTyped] = useState('');
 
   const allowed = isAdmin
-    ? ['closed', 'archived'].includes(poll.status)
-    : poll.status === 'archived';
+    ? ['draft', 'closed', 'archived'].includes(poll.status)
+    : ['draft', 'archived'].includes(poll.status);
 
   const { execute, pending, error } = useAction(async () => {
     await pollsApi.remove(poll.id);
