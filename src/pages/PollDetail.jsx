@@ -101,6 +101,7 @@ export function PollDetail() {
                 Close poll
               </Button>
             )}
+            {poll.status === 'closed' && <ArchiveAction poll={poll} onArchived={reload} />}
             <Button
               variant="ghost"
               onClick={() => analyticsApi.exportCsv(poll.id, poll.slug)}
@@ -162,6 +163,54 @@ export function PollDetail() {
       {activeTab === 'analytics' && <AnalyticsTab poll={poll} />}
       {activeTab === 'invites' && <InvitesTab poll={poll} />}
     </>
+  );
+}
+
+/**
+ * Archive, behind an inline confirmation.
+ *
+ * Confirmed in place rather than through window.confirm: a browser dialog
+ * blocks the page, looks nothing like the rest of the app, and gives no room
+ * to say what archiving actually costs.
+ *
+ * The warning is specific because the consequence is specific and permanent —
+ * the API has publish, close and archive, but no un-archive. Getting a poll
+ * back means duplicating it into a fresh draft.
+ */
+function ArchiveAction({ poll, onArchived }) {
+  const [confirming, setConfirming] = useState(false);
+
+  const { execute, pending, error } = useAction(async () => {
+    await pollsApi.archive(poll.id);
+    setConfirming(false);
+    onArchived();
+  });
+
+  if (!confirming) {
+    return (
+      <Button variant="ghost" onClick={() => setConfirming(true)}>
+        Archive
+      </Button>
+    );
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="text-xs" style={{ color: 'var(--ink-2)' }}>
+        Archiving hides this poll and breaks its link. It cannot be undone.
+      </span>
+      <Button variant="danger" size="sm" loading={pending} onClick={() => execute().catch(() => {})}>
+        Archive
+      </Button>
+      <Button variant="ghost" size="sm" disabled={pending} onClick={() => setConfirming(false)}>
+        Cancel
+      </Button>
+      {error && (
+        <span className="text-xs" style={{ color: 'var(--critical)' }} role="alert">
+          {error.message}
+        </span>
+      )}
+    </div>
   );
 }
 
