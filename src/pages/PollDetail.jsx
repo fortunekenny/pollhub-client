@@ -40,7 +40,13 @@ export function PollDetail() {
   // Invite codes only mean anything when they are what admits a respondent.
   // For every other dedup mode the tab offers a control with no effect.
   const usesInvites = poll?.dedupMode === 'invite_code';
-  const tabs = usesInvites ? [...BASE_TABS, 'invites'] : BASE_TABS;
+  // Only a repeating poll has rounds to compare.
+  const repeats = Boolean(poll?.repeatInterval);
+  const tabs = [
+    ...BASE_TABS,
+    ...(repeats ? ['series'] : []),
+    ...(usesInvites ? ['invites'] : []),
+  ];
 
   // Open on invites straight after setup: an invite-only poll cannot take a
   // single response until codes exist, so issuing them is the next thing to
@@ -172,6 +178,7 @@ export function PollDetail() {
       )}
       {activeTab === 'share' && <SharePanel poll={poll} />}
       {activeTab === 'analytics' && <AnalyticsTab poll={poll} />}
+      {activeTab === 'series' && <SeriesTab poll={poll} />}
       {activeTab === 'invites' && <InvitesTab poll={poll} />}
 
       <DeleteAction poll={poll} isAdmin={user?.role === 'admin'} />
@@ -223,6 +230,112 @@ function ArchiveAction({ poll, onArchived }) {
           {error.message}
         </span>
       )}
+    </div>
+  );
+}
+
+/**
+ * How a repeating poll has moved across its rounds.
+ *
+ * A matrix rather than a chart: rounds run across, options down, so a reader
+ * scans one row to see whether an answer is gaining or fading. A line chart
+ * would look more impressive and read worse at four rounds, which is where
+ * most series will sit for a long time.
+ *
+ * Rounds that have not opened are absent — the API leaves them out rather than
+ * reporting a zero that means "not yet" but looks like "nobody".
+ */
+function SeriesTab({ poll }) {
+  const { data, loading, error } = useAsync(() => pollsApi.series(poll.id), [poll.id]);
+
+  if (loading) return <Spinner size={24} />;
+  if (error) return <ErrorNote error={error} />;
+
+  const { series, rounds, questions } = data;
+
+  if (rounds.length < 2) {
+    return (
+      <EmptyState
+        title="Only one round so far"
+        description={`This poll repeats ${series.repeatInterval}. Once a second round has run, this is where you compare them.`}
+      />
+    );
+  }
+
+  const average = Math.round(series.totalResponses / rounds.length);
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-3">
+        <StatTile label="Rounds" value={formatCount(rounds.length)} />
+        <StatTile label="Total responses" value={formatCount(series.totalResponses)} />
+        <StatTile label="Average per round" value={formatCount(average)} hint="Across all rounds" />
+      </div>
+
+      <Card>
+        <h2 className="mb-3 text-sm font-semibold">Responses by round</h2>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left" style={{ color: 'var(--muted)' }}>
+                <th className="py-1.5 pr-3 font-medium">Round</th>
+                <th className="py-1.5 pr-3 font-medium">Opened</th>
+                <th className="py-1.5 pr-3 font-medium">Status</th>
+                <th className="py-1.5 text-right font-medium">Responses</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rounds.map((r) => (
+                <tr key={r.round} style={{ borderTop: '1px solid var(--line)' }}>
+                  <td className="py-2 pr-3 tabular-nums">{r.round}</td>
+                  <td className="py-2 pr-3" style={{ color: 'var(--ink-2)' }}>
+                    {r.opensAt ? formatDate(r.opensAt) : '—'}
+                  </td>
+                  <td className="py-2 pr-3">
+                    <Badge tone={r.status === 'published' ? 'good' : 'neutral'}>{r.status}</Badge>
+                  </td>
+                  <td className="py-2 text-right tabular-nums">{formatCount(r.responseCount)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      {questions.map((q) => (
+        <Card key={q.position}>
+          <h2 className="mb-1 text-sm font-semibold">{q.prompt}</h2>
+          <p className="mb-4 text-xs" style={{ color: 'var(--muted)' }}>
+            Votes per option, round by round
+          </p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left" style={{ color: 'var(--muted)' }}>
+                  <th className="py-1.5 pr-3 font-medium">Option</th>
+                  {rounds.map((r) => (
+                    <th key={r.round} className="py-1.5 pr-3 text-right font-medium tabular-nums">
+                      R{r.round}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {q.options.map((o) => (
+                  <tr key={o.position} style={{ borderTop: '1px solid var(--line)' }}>
+                    <td className="py-2 pr-3">{o.label ?? `Option ${o.position + 1}`}</td>
+                    {rounds.map((r) => (
+                      <td key={r.round} className="py-2 pr-3 text-right tabular-nums">
+                        {formatCount(o.counts[r.round] ?? 0)}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      ))}
     </div>
   );
 }
