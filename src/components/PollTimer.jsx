@@ -88,16 +88,13 @@ export function useTicker(target, { onReachZero } = {}) {
 /**
  * Decide which clock a poll deserves.
  *
- * Four states, in priority order, because more than one can be true at once —
- * a repeating poll that has closed has both a past opening and a future one.
- *
  *   waiting   published, but its opening is still ahead   → counts down to it
- *   between   closed, and its series opens another round  → counts down to it
  *   closing   published with a deadline                   → counts down to it
  *   running   published, open, no deadline                → counts up
+ *   done      closed or archived                          → a date, no clock
  *
- * A closed poll that is not repeating has no clock at all — nothing is
- * counting, so it reports the date it shut and stops.
+ * Only a live poll gets a running clock. Anything finished reports when it
+ * finished and starts no timer, so a screen of closed polls costs nothing.
  */
 function clockFor(poll) {
   if (!poll) return null;
@@ -108,15 +105,14 @@ function clockFor(poll) {
   if (live && ahead(poll.opensAt)) {
     return { mode: 'waiting', target: poll.opensAt, label: 'Opens in' };
   }
-  // Between rounds: this round is over but the series is not. Worded apart
-  // from `waiting` on purpose — a list shows every round as its own card, so
-  // the finished round and the one it is waiting for sit side by side counting
-  // to the same instant. Identical wording on both reads as a duplicate.
-  if (!live && ahead(poll.nextOpensAt)) {
-    return { mode: 'between', target: poll.nextOpensAt, label: 'Next round opens in' };
-  }
+  // A closed round is finished, including one belonging to a repeating poll.
+  // It briefly counted down to the next round, which meant a list showed the
+  // finished round and the upcoming round side by side counting to the same
+  // instant — two clocks for one event. The upcoming round is the one with
+  // something ahead of it; this one only has a date behind it.
+  //
+  // No target either, so no timer is started at all for a closed poll.
   if (poll.status === 'closed' || poll.status === 'archived') {
-    // No target: nothing is counting, so no timer is started for this poll.
     // closesAt is exact for a scheduled close; a poll shut by hand has none,
     // and updatedAt is when that happened.
     return { mode: 'done', closedAt: poll.closesAt ?? poll.updatedAt ?? null };
