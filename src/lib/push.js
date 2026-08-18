@@ -65,12 +65,12 @@ export async function registerWebPush() {
       import('firebase/messaging'),
     ]);
 
-    // The service worker cannot read Vite env at runtime, so the config
-    // travels in the registration URL and is read back from location.search.
-    const registration = await navigator.serviceWorker.register(
-      `/firebase-messaging-sw.js?${new URLSearchParams(CONFIG)}`,
-      { scope: '/' },
-    );
+    // No query string: the worker no longer initialises Firebase, so it needs
+    // no config. It handles the raw Push API event itself, which keeps a CDN
+    // fetch off the path Chrome runs every time it wakes the worker for a push.
+    const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
+      scope: '/',
+    });
 
     // register() resolves as soon as the registration exists — the worker
     // itself may still be installing. PushManager.subscribe(), which getToken
