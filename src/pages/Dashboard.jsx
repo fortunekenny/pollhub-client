@@ -145,10 +145,17 @@ export function Dashboard() {
                   >
                     {poll.title}
                   </Link>
-                  <Badge tone={STATUS_TONE[poll.status]}>
-                    <Dot tone={STATUS_TONE[poll.status]} />
-                    {poll.status}
-                  </Badge>
+                  <div className="flex flex-wrap justify-end gap-1.5">
+                    {poll.repeatInterval && (
+                      <Badge tone="brand">
+                        {poll.repeatInterval} · round {poll.round}
+                      </Badge>
+                    )}
+                    <Badge tone={STATUS_TONE[poll.status]}>
+                      <Dot tone={STATUS_TONE[poll.status]} />
+                      {poll.status}
+                    </Badge>
+                  </div>
                 </div>
 
                 {/* The response count is the number people come here to read,
@@ -161,6 +168,15 @@ export function Dashboard() {
                   <span className="text-sm" style={{ color: 'var(--ink-2)' }}>
                     {poll.responseCount === 1 ? 'response' : 'responses'}
                   </span>
+                  {/* A series card shows its newest round, so the headline
+                      number is that round's. The total across every round is
+                      the other number someone wants, and only makes sense to
+                      show once there is more than one. */}
+                  {poll.seriesRounds > 1 && (
+                    <span className="text-xs" style={{ color: 'var(--muted)' }}>
+                      · {formatCount(poll.seriesResponses)} across {poll.seriesRounds} rounds
+                    </span>
+                  )}
                 </div>
 
                 <dl

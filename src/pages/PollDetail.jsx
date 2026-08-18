@@ -113,9 +113,12 @@ export function PollDetail() {
                   reload();
                 }}
               >
-                Close poll
+                {/* On a repeating poll this ends the round, not the poll —
+                    another opens on schedule. "Close poll" would be a lie. */}
+                {poll.repeatInterval ? 'Close round' : 'Close poll'}
               </Button>
             )}
+            {poll.repeatInterval && <EndSeriesAction poll={poll} onEnded={reload} />}
             {poll.status === 'closed' && <ArchiveAction poll={poll} onArchived={reload} />}
             <Button
               variant="ghost"
@@ -241,6 +244,53 @@ function ArchiveAction({ poll, onArchived }) {
         </span>
       )}
     </div>
+  );
+}
+
+/**
+ * Stop a repeating poll for good.
+ *
+ * Confirmed, because the difference between this and "Close round" is not
+ * visible in the button — one ends today's round and another opens tomorrow,
+ * the other ends the whole thing. Undoing it means setting the poll to repeat
+ * again, which starts a fresh round rather than resuming the old rhythm.
+ */
+function EndSeriesAction({ poll, onEnded }) {
+  const [confirming, setConfirming] = useState(false);
+
+  const { execute, pending, error } = useAction(async () => {
+    await pollsApi.endSeries(poll.id);
+    setConfirming(false);
+    onEnded();
+  });
+
+  if (!confirming) {
+    return (
+      <Button variant="ghost" onClick={() => setConfirming(true)}>
+        End series
+      </Button>
+    );
+  }
+
+  return (
+    <>
+      <Button
+        variant="danger"
+        loading={pending}
+        onClick={() => execute().catch(() => {})}
+        title={`Stops the ${poll.repeatInterval} repeat and closes this round`}
+      >
+        End for good
+      </Button>
+      <Button variant="ghost" disabled={pending} onClick={() => setConfirming(false)}>
+        Cancel
+      </Button>
+      {error && (
+        <span className="self-center text-xs" style={{ color: 'var(--critical)' }} role="alert">
+          {error.message}
+        </span>
+      )}
+    </>
   );
 }
 

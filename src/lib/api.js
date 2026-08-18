@@ -179,6 +179,8 @@ export const pollsApi = {
   close: (id) => api.post(`/polls/${id}/close`),
   archive: (id) => api.post(`/polls/${id}/archive`),
   series: (id) => api.get(`/polls/${id}/series`),
+  // Stops the repeat and closes the current round. No further rounds open.
+  endSeries: (id) => api.post(`/polls/${id}/end-series`),
   // Permanent. The API decides which statuses are allowed, by role.
   remove: (id) => api.del(`/polls/${id}`),
   qrUrl: (id) => `${BASE}/polls/${id}/qr.svg`,
