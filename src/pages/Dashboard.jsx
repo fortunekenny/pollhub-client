@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { pollsApi } from '../lib/api.js';
 import { useAsync, useDocumentTitle } from '../lib/hooks.js';
-import { formatCount, formatDate, relativeTime } from '../lib/format.js';
+import { formatCount, formatDate } from '../lib/format.js';
+import { PollTimer } from '../components/PollTimer.jsx';
 import {
   Button,
   Badge,
@@ -176,13 +177,17 @@ export function Dashboard() {
                       Created <time>{formatDate(poll.createdAt)}</time>
                     </dd>
                   </div>
-                  {poll.closesAt && poll.status === 'published' && (
-                    <div className="flex gap-1">
-                      <dt>Closes</dt>
-                      <dd>{relativeTime(poll.closesAt)}</dd>
-                    </div>
-                  )}
                 </dl>
+
+                {/* Live, and it chooses its own clock: counting down to an
+                    opening or a deadline, counting up while a poll runs, and
+                    counting down to the next round of a repeating poll that
+                    has closed — which is between rounds, not finished. */}
+                <PollTimer
+                  poll={poll}
+                  className="mt-2 text-xs font-medium"
+                  style={{ color: 'var(--brand-ink)' }}
+                />
 
                 <div
                   className="mt-auto flex flex-wrap gap-2 pt-5"

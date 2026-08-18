@@ -328,11 +328,7 @@ function PollShell({ poll, children }) {
           {/* Ticks, because a respondent deciding whether to answer now is
               exactly who needs to know it shuts in four minutes — or that it
               has been open a fortnight and there is no rush. */}
-          <PollTimer
-            closesAt={poll.closesAt}
-            since={poll.publishedAt ?? poll.opensAt ?? poll.createdAt}
-            status={poll.status}
-          />
+          <PollTimer poll={poll} />
         </p>
       </div>
       {children}
@@ -478,9 +474,7 @@ function ThankYou({ poll, questions, tallies, result, liveCount }) {
         {/* Someone who has just voted and is watching the numbers move is the
             likeliest person on the site to want to know how long is left. */}
         <PollTimer
-          closesAt={poll.closesAt}
-          since={poll.publishedAt ?? poll.opensAt ?? poll.createdAt}
-          status={poll.status}
+          poll={poll}
           className="text-xs font-medium"
           style={{ color: 'var(--brand-ink)' }}
         />

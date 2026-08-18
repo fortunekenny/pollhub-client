@@ -73,12 +73,10 @@ export function Discover() {
                     {poll.responseCount === 1 ? 'response' : 'responses'} ·{' '}
                     <time>{formatDate(poll.createdAt)}</time>
                   </p>
-                  {/* Every listed poll gets a clock: a deadline counts down,
-                      and one without counts up from when it opened. */}
+                  {/* The component picks the clock: opening soon, closing
+                      soon, or how long it has been running. */}
                   <PollTimer
-                    closesAt={poll.closesAt}
-                    since={poll.publishedAt ?? poll.opensAt ?? poll.createdAt}
-                    status={poll.status}
+                    poll={poll}
                     className="mt-1 text-xs font-medium"
                     style={{ color: 'var(--brand-ink)' }}
                   />

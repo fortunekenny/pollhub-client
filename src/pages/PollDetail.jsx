@@ -137,18 +137,14 @@ export function PollDetail() {
             Repeats {poll.repeatInterval} · round {poll.round}
           </Badge>
         )}
-        {poll.status === 'published' && (
-          <PollTimer
-            closesAt={poll.closesAt}
-            since={poll.publishedAt ?? poll.opensAt ?? poll.createdAt}
-            status={poll.status}
-            className="text-xs font-medium"
-            style={{ color: 'var(--brand-ink)' }}
-            // The scheduler closes it within the minute; refetch then so the
-            // page shows `closed` instead of a deadline stuck at zero.
-            onExpire={() => setTimeout(reload, 65_000)}
-          />
-        )}
+        <PollTimer
+          poll={poll}
+          className="text-xs font-medium"
+          style={{ color: 'var(--brand-ink)' }}
+          // The scheduler acts within the minute; refetch after it, so the page
+          // shows the new state rather than a countdown stuck at zero.
+          onExpire={() => setTimeout(reload, 65_000)}
+        />
         {poll.status === 'published' && (
           <span
             className="ml-auto flex items-center gap-1.5 text-xs"

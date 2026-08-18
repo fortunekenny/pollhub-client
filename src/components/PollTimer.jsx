@@ -79,16 +79,55 @@ export function useTicker(target, { onReachZero } = {}) {
 }
 
 /**
- * @param closesAt   deadline, if the poll has one — counts down
- * @param since      when it started — counts up when there is no deadline
- * @param status     a closed or archived poll shows neither clock
- * @param onExpire   called once when a deadline passes
+ * Decide which clock a poll deserves.
+ *
+ * Four states, in priority order, because more than one can be true at once —
+ * a repeating poll that has closed has both a past opening and a future one.
+ *
+ *   waiting   published, but its opening is still ahead   → counts down to it
+ *   between   closed, and its series opens another round  → counts down to it
+ *   closing   published with a deadline                   → counts down to it
+ *   running   published, open, no deadline                → counts up
+ *
+ * A closed poll that is not repeating has nothing left to say, so it says so.
  */
-export function PollTimer({ closesAt, since, status, onExpire, className, style }) {
-  const counting = closesAt ?? since ?? null;
-  const delta = useTicker(counting, { onReachZero: closesAt ? onExpire : undefined });
+function clockFor(poll) {
+  if (!poll) return null;
+  const now = Date.now();
+  const ahead = (v) => v && new Date(v).getTime() > now;
+  const live = poll.status === 'published';
 
-  if (status === 'closed' || status === 'archived') {
+  if (live && ahead(poll.opensAt)) {
+    return { mode: 'waiting', target: poll.opensAt, label: 'Opens in' };
+  }
+  // Between rounds: the round is over but the series is not.
+  if (!live && ahead(poll.nextOpensAt)) {
+    return { mode: 'between', target: poll.nextOpensAt, label: 'Opens in' };
+  }
+  if (poll.status === 'closed' || poll.status === 'archived') return { mode: 'done' };
+  if (!live) return null; // a draft has no clock
+
+  if (poll.closesAt) return { mode: 'closing', target: poll.closesAt, label: 'Closes in' };
+
+  const started = poll.publishedAt ?? poll.opensAt ?? poll.createdAt;
+  return started ? { mode: 'running', target: started, label: 'Has been open for' } : null;
+}
+
+/**
+ * @param poll      the poll, in whatever shape the list or detail endpoint returns
+ * @param onExpire  called once when a countdown reaches zero
+ */
+export function PollTimer({ poll, onExpire, className, style }) {
+  const clock = clockFor(poll);
+  const counting = clock?.target ?? null;
+  // Only a countdown has an expiry worth reporting; a count-up never ends.
+  const delta = useTicker(counting, {
+    onReachZero: clock && clock.mode !== 'running' ? onExpire : undefined,
+  });
+
+  if (!clock) return null;
+
+  if (clock.mode === 'done') {
     return (
       <span className={className} style={style}>
         Closed
@@ -97,31 +136,23 @@ export function PollTimer({ closesAt, since, status, onExpire, className, style 
   }
   if (delta === null) return null;
 
-  // Counting down: delta shrinks toward zero. Counting up: `since` is in the
-  // past, so delta is negative and its magnitude is the elapsed time.
-  if (closesAt) {
-    if (delta <= 0) {
-      return (
-        <span className={className} style={style}>
-          Closing…
-        </span>
-      );
-    }
+  // Counting down, delta shrinks toward zero. Counting up, the target is in
+  // the past, so delta is negative and its magnitude is the elapsed time.
+  const countingUp = clock.mode === 'running';
+
+  if (!countingUp && delta <= 0) {
     return (
       <span className={className} style={style}>
-        Closes in{' '}
-        <time dateTime={new Date(closesAt).toISOString()} className="tabular-nums">
-          {formatDuration(delta)}
-        </time>
+        {clock.mode === 'closing' ? 'Closing…' : 'Opening…'}
       </span>
     );
   }
 
   return (
     <span className={className} style={style}>
-      Open{' '}
-      <time dateTime={new Date(since).toISOString()} className="tabular-nums">
-        {formatDuration(-delta)}
+      {clock.label}{' '}
+      <time dateTime={new Date(clock.target).toISOString()} className="tabular-nums">
+        {formatDuration(countingUp ? -delta : delta)}
       </time>
     </span>
   );
