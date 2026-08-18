@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { formatDate } from '../lib/format.js';
 
 /**
  * How long a poll has left, or how long it has been running.
@@ -95,7 +96,8 @@ export function useTicker(target, { onReachZero } = {}) {
  *   closing   published with a deadline                   → counts down to it
  *   running   published, open, no deadline                → counts up
  *
- * A closed poll that is not repeating has nothing left to say, so it says so.
+ * A closed poll that is not repeating has no clock at all — nothing is
+ * counting, so it reports the date it shut and stops.
  */
 function clockFor(poll) {
   if (!poll) return null;
@@ -110,7 +112,12 @@ function clockFor(poll) {
   if (!live && ahead(poll.nextOpensAt)) {
     return { mode: 'between', target: poll.nextOpensAt, label: 'Opens in' };
   }
-  if (poll.status === 'closed' || poll.status === 'archived') return { mode: 'done' };
+  if (poll.status === 'closed' || poll.status === 'archived') {
+    // No target: nothing is counting, so no timer is started for this poll.
+    // closesAt is exact for a scheduled close; a poll shut by hand has none,
+    // and updatedAt is when that happened.
+    return { mode: 'done', closedAt: poll.closesAt ?? poll.updatedAt ?? null };
+  }
   if (!live) return null; // a draft has no clock
 
   if (poll.closesAt) return { mode: 'closing', target: poll.closesAt, label: 'Closes in' };
@@ -136,7 +143,13 @@ export function PollTimer({ poll, onExpire, className, style }) {
   if (clock.mode === 'done') {
     return (
       <span className={className} style={style}>
-        Closed
+        {clock.closedAt ? (
+          <>
+            Closed on <time dateTime={new Date(clock.closedAt).toISOString()}>{formatDate(clock.closedAt)}</time>
+          </>
+        ) : (
+          'Closed'
+        )}
       </span>
     );
   }
