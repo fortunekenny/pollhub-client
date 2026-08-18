@@ -20,16 +20,22 @@ import { useEffect, useState } from 'react';
  * thirty of these can be on screen at once.
  */
 function tickRate(ms) {
-  const abs = Math.abs(ms);
-  if (abs < 3_600_000) return 1_000;
-  if (abs < 86_400_000) return 30_000;
-  return 60_000;
+  // Anything under a day shows seconds, so it has to tick every second to be
+  // worth showing at all. Past a day the smallest unit on screen is an hour,
+  // and a re-render per second would be 3,600 of them to change one digit.
+  return Math.abs(ms) < 86_400_000 ? 1_000 : 60_000;
 }
 
 /**
- * Largest two units, second one padded, so the string keeps its width as it
- * ticks: "6d 04h", "4h 09m", "12m 30s". A value that changes width jitters the
- * line around it, which is what makes a live number feel unstable.
+ * Seconds are always the last unit under a day, so the number visibly moves.
+ * An "Xh YYm" reading sits unchanged for a full minute, which reads as broken
+ * rather than as a clock — the whole point of putting it on screen live.
+ *
+ * Past a day, seconds are noise: "6d 04h" is what a reader wants, and ticking
+ * the last digit of it 86,400 times a day changes nothing they can use.
+ *
+ * Units are zero-padded so the string keeps its width as it counts. A value
+ * that changes width jitters the line around it.
  */
 export function formatDuration(ms) {
   const total = Math.max(0, Math.floor(ms / 1000));
@@ -40,7 +46,7 @@ export function formatDuration(ms) {
   const pad = (n) => String(n).padStart(2, '0');
 
   if (days > 0) return `${days}d ${pad(hours)}h`;
-  if (hours > 0) return `${hours}h ${pad(minutes)}m`;
+  if (hours > 0) return `${hours}h ${pad(minutes)}m ${pad(seconds)}s`;
   if (minutes > 0) return `${minutes}m ${pad(seconds)}s`;
   return `${seconds}s`;
 }
