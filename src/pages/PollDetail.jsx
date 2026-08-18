@@ -18,6 +18,7 @@ import {
   Input,
 } from '../components/ui.jsx';
 import { SharePanel } from '../components/SharePanel.jsx';
+import { Countdown } from '../components/Countdown.jsx';
 import { ResultBars } from '../components/charts/ResultBars.jsx';
 import { ShareDonut } from '../components/charts/ShareDonut.jsx';
 import { RankingResults } from '../components/charts/RankingResults.jsx';
@@ -131,9 +132,14 @@ export function PollDetail() {
           </Badge>
         )}
         {poll.closesAt && poll.status === 'published' && (
-          <span className="text-xs" style={{ color: 'var(--muted)' }}>
-            Closes {relativeTime(poll.closesAt)}
-          </span>
+          <Countdown
+            closesAt={poll.closesAt}
+            className="text-xs font-medium"
+            style={{ color: 'var(--brand-ink)' }}
+            // The scheduler closes it within the minute; refetch then so the
+            // page shows `closed` instead of a deadline stuck at zero.
+            onExpire={() => setTimeout(reload, 65_000)}
+          />
         )}
         {poll.status === 'published' && (
           <span

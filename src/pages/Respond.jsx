@@ -9,6 +9,7 @@ import { ResultBars } from '../components/charts/ResultBars.jsx';
 import { RankingResults } from '../components/charts/RankingResults.jsx';
 import { Turnstile, isTurnstileConfigured } from '../components/Turnstile.jsx';
 import { RankingInput } from '../components/RankingInput.jsx';
+import { Countdown } from '../components/Countdown.jsx';
 
 /**
  * Public respondent page.
@@ -322,7 +323,9 @@ function PollShell({ poll, children }) {
               <circle cx="12" cy="12" r="9" />
               <path d="M12 7v5.2l3 1.8" />
             </svg>
-            Closes {relativeTime(poll.closesAt)}
+            {/* Ticks, because a respondent deciding whether to answer now is
+                exactly who needs to know it shuts in four minutes. */}
+            <Countdown closesAt={poll.closesAt} />
           </p>
         )}
       </div>
@@ -463,6 +466,15 @@ function ThankYou({ poll, questions, tallies, result }) {
         <p className="text-sm" style={{ color: 'var(--ink-2)' }}>
           <span data-numeric>{formatCount(result.responseCount)}</span> responses so far.
         </p>
+        {/* Someone who has just voted and is watching the numbers move is the
+            likeliest person on the site to want to know how long is left. */}
+        {poll.closesAt && (
+          <Countdown
+            closesAt={poll.closesAt}
+            className="text-xs font-medium"
+            style={{ color: 'var(--brand-ink)' }}
+          />
+        )}
       </Card>
 
       {result.resultsVisible ? (
