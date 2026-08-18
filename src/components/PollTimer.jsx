@@ -108,9 +108,12 @@ function clockFor(poll) {
   if (live && ahead(poll.opensAt)) {
     return { mode: 'waiting', target: poll.opensAt, label: 'Opens in' };
   }
-  // Between rounds: the round is over but the series is not.
+  // Between rounds: this round is over but the series is not. Worded apart
+  // from `waiting` on purpose — a list shows every round as its own card, so
+  // the finished round and the one it is waiting for sit side by side counting
+  // to the same instant. Identical wording on both reads as a duplicate.
   if (!live && ahead(poll.nextOpensAt)) {
-    return { mode: 'between', target: poll.nextOpensAt, label: 'Opens in' };
+    return { mode: 'between', target: poll.nextOpensAt, label: 'Next round opens in' };
   }
   if (poll.status === 'closed' || poll.status === 'archived') {
     // No target: nothing is counting, so no timer is started for this poll.
